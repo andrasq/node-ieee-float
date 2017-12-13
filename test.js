@@ -16,8 +16,8 @@ function checkValue( t, val, type ) {
     var read = 'read' + type;
     var write = 'write' + type;
 
-    tmpbuf[write](val);
-    var expect = tmpbuf[read]();
+    tmpbuf[write](val, 0);
+    var expect = tmpbuf[read](0);
 
     var v2 = fp[read](tmpbuf);
 

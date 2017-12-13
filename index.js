@@ -218,29 +218,22 @@ function writeFloat( buf, v ) {
     else if (v === Infinity) word = sign ? 0xFF800000 : 0x7F800000;             // -Infinity, +Infinity
     else {
         normalize(v, floatParts);
-//console.log("AR: mantissa", floatParts.exp, (floatParts.mant).toString(2));
         floatParts.exp += 127;          // bias exponent
-//console.log("AR: mantissa, biased", floatParts.exp, (floatParts.mant).toString(2));
 
         if (floatParts.exp <= 0) {       // denormalized number, or underflow
             floatParts.mant /= 2;
-//console.log("AR: mantissa halved", floatParts.exp, (floatParts.mant).toString(2));
-// FIXME: php and node round 8.652832863139391e-8 to denorm .0001, we round to denorm .0000
 // FIXME: make O() logarithmic in num bits, not linear
             while (floatParts.exp < 0) { floatParts.exp += 1; floatParts.mant /= 2 }    // denorm
             floatParts.mant = (floatParts.mant * 0x800000) + 0.5;
             if (floatParts.mant >= 0x800000) { floatParts.exp += 1; floatParts.mant /= 2 }
-//console.log("AR: mantissa denormalized", floatParts.exp, (floatParts.mant).toString(2));
-//if (floatParts.mant < 2) console.log("AR: extreme denorm", v, floatParts);
-        } else {                        // normal number of overflow
+        }
+        else {                          // normal number, or overflow
             floatParts.mant = (floatParts.mant - 1) * 0x800000 + 0.5;
             if (floatParts.mant >= 0x800000) { floatParts.mant /= 2; floatParts.exp += 1 }
-//console.log("AR: mantissa rounded", floatParts.exp, (floatParts.mant).toString(2));
             if (floatParts.exp > 254) { floatParts.exp = 255; floatParts.mant = 0 }         // overflow to Infinity
         }
 
         word = ((sign << 31) >>> 0) | (floatParts.exp << 23) | (floatParts.mant >>> 0);
-//console.log("AR: word", word.toString(16), ((sign << 31) >>> 0).toString(16), (((floatParts.exp & 0xFF) + 127) << 23).toString(16), ((floatParts.mant)).toString(16));
     }
     encodeUInt32(buf, word);
     return buf;
@@ -255,7 +248,7 @@ var doubleArray = [0, 0, 0, 0, 0, 0, 0, 0];
 var doubleBuf = new Buffer(8);
 function writeDouble( buf, v ) {
     // WRITEME
-    doubleBuf.writeDoubleLE(v);
+    doubleBuf.writeDoubleLE(v, 0);
     for (var i=0; i<8; i++) buf[i] = doubleBuf[i];
     return doubleBuf;
 }
