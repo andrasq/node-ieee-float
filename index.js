@@ -184,20 +184,16 @@ function pow2( exp ) {
 
 // given a value v, return its integer log_2 (ie, its binary exponent)
 // returns the 0-based offset of the msbit set, 0 => 1, +n => 2^n, -n => 2^-n
+// The special values 0, -0, NaN, +Infinity and -Infinity are not handled here.
 function normalize( v, parts ) {
     var pow = 0;
 
-// FIXME: make logarithmic in num bits, not linear
-    if (v) {
-        if (v >= 2) {
-            do { v /= 2; pow += 1 } while (v >= 2);
-        } else {
-            while (v < 1) { v *= 2; pow -= 1 }
-        }
+// FIXME: make O() logarithmic in num bits, not linear
+    if (v >= 2) {
+        do { v /= 2; pow += 1 } while (v >= 2);
+    } else {
+        while (v < 1) { v *= 2; pow -= 1 }
     }
-    else if (v === 0) { pow = 0; v = 0 }
-    else if (isNaN(v)) { pow = 0xff; v = 0 }
-    else { pow = 0xff; v = 1.5 }
 
     // TODO: pass in num bits, and normalize denorms too
 
@@ -210,41 +206,41 @@ var floatArray = [0, 0, 0, 0];
 var floatBuf = new Buffer(4);
 var floatParts = { exp: 0, mant: 0 };
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
-var floatOverflow = Math.pow(2, 256);   // FIXME: verify max possible exp, given +127 bias
+var floatOverflow = Math.pow(2, 127);   // FIXME: verify max possible exp, given +127 bias
 var floatDenorm = Math.pow(2, -127);    // FIXME: verify min
-var floatUnderflow = Math.pow(2, -256); // FIXME: verify min possible exp, given +127 bias
+var floatUnderflow = Math.pow(2, -127 - 23); // FIXME: verify min possible exp, given +127 bias
 function writeFloat( buf, v ) {
     var word;
     var sign = (v < 0) ? ((v = -v), 1) : 0;
 
-    if (v === 0) word = (1/v === -Infinity) ? 0x80000000 : 0x00000000;
-    else if (isNaN(v)) word = 0x7FC00000;
-    else if (v === Infinity) word = sign ? 0xFF800000 : 0x7F800000;
-    else if (v >= floatOverflow) word = sign ? 0xFF800000 : 0x7F800000;
-    else if (v <= floatUnderflow) word = sign ? 0x80000000 : 0x00000000;
+    if (v === 0) word = (1/v === -Infinity) ? 0x80000000 : 0x00000000;          // -0, +0
+    else if (isNaN(v)) word = 0x7FC00000;                                       // NaN
+    else if (v === Infinity) word = sign ? 0xFF800000 : 0x7F800000;             // -Infinity, +Infinity
     else {
         normalize(v, floatParts);
-console.log("AR: normalized", v, sign, floatParts);
-console.log("AR: mantissa", (floatParts.mant * 0x800000).toString(16));
+//console.log("AR: mantissa", floatParts.exp, (floatParts.mant).toString(2));
         floatParts.exp += 127;          // bias exponent
-        floatParts.mant += pow2(-24);   // round to nearest bit
-// TODO: normalize mant to 23 bits (without leading 1); round by adding 0.5
-        if (floatParts.mant >= 2) { floatParts.mant /= 2; floatParts.exp += 1 }
-console.log("AR: mantissa rounded", (floatParts.mant * 0x800000).toString(16));
+//console.log("AR: mantissa, biased", floatParts.exp, (floatParts.mant).toString(2));
 
-        if (floatParts.exp < 0) {
+        if (floatParts.exp <= 0) {       // denormalized number, or underflow
             floatParts.mant /= 2;
+//console.log("AR: mantissa halved", floatParts.exp, (floatParts.mant).toString(2));
 // FIXME: php and node round 8.652832863139391e-8 to denorm .0001, we round to denorm .0000
-// FIXME: make logarithmic in num bits, not linear
+// FIXME: make O() logarithmic in num bits, not linear
             while (floatParts.exp < 0) { floatParts.exp += 1; floatParts.mant /= 2 }    // denorm
-console.log("AR: mantissa denormalized", (floatParts.mant * 0x800000).toString(16));
-if (floatParts.mant < 2) console.log("AR: extreme denorm", v, floatParts);
+            floatParts.mant = (floatParts.mant * 0x800000) + 0.5;
+            if (floatParts.mant >= 0x800000) { floatParts.exp += 1; floatParts.mant /= 2 }
+//console.log("AR: mantissa denormalized", floatParts.exp, (floatParts.mant).toString(2));
+//if (floatParts.mant < 2) console.log("AR: extreme denorm", v, floatParts);
+        } else {                        // normal number of overflow
+            floatParts.mant = (floatParts.mant - 1) * 0x800000 + 0.5;
+            if (floatParts.mant >= 0x800000) { floatParts.mant /= 2; floatParts.exp += 1 }
+//console.log("AR: mantissa rounded", floatParts.exp, (floatParts.mant).toString(2));
+            if (floatParts.exp > 254) { floatParts.exp = 255; floatParts.mant = 0 }         // overflow to Infinity
         }
-        if (floatParts.exp > 254) { floatParts.exp = 255; floatParts.mant = 0 }         // overflow
-        if (floatParts.exp < 0 ) { floatParts.exp = 0; floatParts.mant = 0 }            // underflow
 
-        word = ((sign << 31) >>> 0) | (floatParts.exp << 23) | (floatParts.mant * 0x800000 & 0x7FFFFF);
-console.log("AR: word", word.toString(16), ((sign << 31) >>> 0).toString(16), (((floatParts.exp & 0xFF) + 127) << 23).toString(16), ((floatParts.mant * 0x800000) & 0x7FFFFF).toString(16));
+        word = ((sign << 31) >>> 0) | (floatParts.exp << 23) | (floatParts.mant >>> 0);
+//console.log("AR: word", word.toString(16), ((sign << 31) >>> 0).toString(16), (((floatParts.exp & 0xFF) + 127) << 23).toString(16), ((floatParts.mant)).toString(16));
     }
     encodeUInt32(buf, word);
     return buf;

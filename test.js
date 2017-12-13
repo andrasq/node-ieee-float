@@ -3,12 +3,11 @@
 var fp = require('./');
 
 var testValues = [
-    1.0171355313990822e-45,
     0, -0, 1, -1, 1e10, -1e10, 1e-10, -1e-10,
     0.25, Math.pow(2, 40), NaN, Infinity, -Infinity,
     1 * Math.pow(2, 129), 1 * Math.pow(2, -129),
-    // breaking denorm:
-//    1.0171355313990822e-45,
+    1.0171355313990822e-45,     // tiny denorm, just 1 bit
+    1.102423499998344e-38,      // large denorm, 1.111 2e-127
 ];
 
 var tmpbuf = new Buffer(8);
