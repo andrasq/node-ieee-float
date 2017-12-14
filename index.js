@@ -3,7 +3,7 @@
  *
  */
 
-;(function() {
+;(function install() {
     var exports = this.exports || typeof global !== 'undefined' && global.exports || this;
 
     exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
@@ -22,8 +22,7 @@
     exports.writeDouble = writeDouble;
 
     // accelerate access
-    function Dummy() {};
-    Dummy.prototype = exports;
+    install.prototype = exports;
 
 }).call(this);
 
@@ -130,18 +129,21 @@ function pow2( exp ) {
 // given a value v, normalize it to between 1 and less than 2 with a binary exponent
 // The exponent is the number of bit places it was shifted, positive if v was >= 2.
 // The special values 0, -0, NaN, +Infinity and -Infinity are not handled here.
+// Possibly faster convergence:
+//   var exp = (Math.log(v) / Math.LN2 - 1) >>> 0;
+//   v *= pow2(-exp);
 var _billion = 0x40000000000;
 var _billionth = 1 / _billion;
 function normalize( v, parts ) {
     var exp = 0;
 
     if (v >= 2) {
-        if (v >= _billion) for (var bits = 512; bits >= 32; bits /= 2) {
+        if (v >= _billion) for (var bits = 512; bits >= 16; bits /= 2) {
             if (v >= pow2(bits)) { exp += bits; v /= pow2(bits); }
         }
         while (v >= 2) { v /= 2; exp += 1 }
     } else {
-        if (v <= _billionth) for (var bits = -512; bits <= -32; bits /= 2) {
+        if (v <= _billionth) for (var bits = -512; bits <= -16; bits /= 2) {
             if (v <= pow2(bits)) { exp -= bits; v *= pow2(bits) }
         }
         while (v < 1) { v *= 2; exp -= 1 }

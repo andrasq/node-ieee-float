@@ -95,14 +95,6 @@ module.exports = {
     'float speed 1m': function(t) {
         tmpbuf.writeFloatBE(1.5);
 
-        console.time('Buffer.readFloatBE');
-        for (var i=0; i<1000000; i++) tmpbuf.readFloatBE();
-        console.timeEnd('Buffer.readFloatBE');
-
-        console.time('Buffer.writeFloatBE');
-        for (var i=0; i<1000000; i++) tmpbuf.writeFloatBE(1.5);
-        console.timeEnd('Buffer.writeFloatBE');
-
         console.time('readFloatBE');
         for (var i=0; i<1000000; i++) fp.readFloatBE(tmpbuf);
         console.timeEnd('readFloatBE');
@@ -114,6 +106,31 @@ module.exports = {
         console.time('writeFloatLE');
         for (var i=0; i<1000000; i++) fp.writeFloatLE(tmpbuf, 1.5);
         console.timeEnd('writeFloatLE');
+
+        console.time('readDoubleBE');
+        for (var i=0; i<1000000; i++) fp.readDoubleBE(tmpbuf);
+        console.timeEnd('readDoubleBE');
+
+        // TODO: once implemented...
+        //console.time('writeDoubleBE');
+        //for (var i=0; i<1000000; i++) fp.writeDoubleBE(tmpbuf);
+        //console.timeEnd('writeDoubleBE');
+
+        console.time('Buffer.readFloatBE');
+        for (var i=0; i<1000000; i++) tmpbuf.readFloatBE();
+        console.timeEnd('Buffer.readFloatBE');
+
+        console.time('Buffer.writeFloatBE');
+        for (var i=0; i<1000000; i++) tmpbuf.writeFloatBE(1.5);
+        console.timeEnd('Buffer.writeFloatBE');
+
+        console.time('Buffer.readDoubleBE');
+        for (var i=0; i<1000000; i++) tmpbuf.readDoubleBE();
+        console.timeEnd('Buffer.readDoubleBE');
+
+        console.time('Buffer.writeDoubleBE');
+        for (var i=0; i<1000000; i++) tmpbuf.writeDoubleBE(1.5);
+        console.timeEnd('Buffer.writeDoubleBE');
 
         t.done();
     },
