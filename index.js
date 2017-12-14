@@ -6,58 +6,20 @@
 ;(function() {
     var exports = this.exports || typeof global !== 'undefined' && global.exports || this;
 
-    var floatBytes = [0, 0, 0, 0];
-    var doubleBytes = [0, 0, 0, 0, 0, 0, 0, 0];
+    exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
+    exports.writeFloatLE = function writeFloatLE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'le'); };
+    exports.readFloatBE = function readFloatBE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'bige'); }
+    exports.writeFloatBE = function writeFloatBE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'bige'); }
 
-    exports.decodeUInt32 = decodeUInt32;
-    exports.encodeUInt32 = encodeUInt32;
+    exports.readDoubleLE = function readDoubleLE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'le'); }
+    exports.writeDoubleLE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'le'); }
+    exports.readDoubleBE = function readDoubleBE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'bige'); }
+    exports.writeDoubleBE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'bige'); }
+
     exports.readFloat = readFloat;
     exports.writeFloat = writeFloat;
     exports.readDouble = readDouble;
     exports.writeDouble = writeDouble;
-
-
-    exports.readFloatLE = function readFloatLE( buf, offset ) {
-        copyInLE(4, floatBytes, buf, offset);
-        return exports.readFloat(floatBytes);
-    }
-
-    exports.readFloatBE = function readFloatBE( buf, offset ) {
-        copyInBE(4, floatBytes, buf, offset);
-        return exports.readFloat(floatBytes);
-    }
-
-    exports.readDoubleLE = function readDoubleLE( buf, offset ) {
-        copyInLE(8, doubleBytes, buf, offset);
-        return exports.readDouble(doubleBytes);
-    }
-
-    exports.readDoubleBE = function readDoubleBE( buf, offset ) {
-        copyInBE(8, doubleBytes, buf, offset);
-        return exports.readDouble(doubleBytes);
-    }
-
-
-    exports.writeFloatLE = function writeFloatLE( buf, v, offset ) {
-        exports.writeFloat(floatBytes, v);
-        copyOutLE(4, floatBytes, buf, offset);
-    };
-
-    exports.writeFloatBE = function writeFloatBE( buf, v, offset ) {
-        exports.writeFloat(floatBytes, v);
-        copyOutBE(4, floatBytes, buf, offset);
-    }
-
-    exports.writeDoubleLE = function writeDoubleLE( buf, v, offset ) {
-        exports.writeDouble(doubleBytes, v);
-        copyOutLE(8, doubleBytes, buf, offset);
-    }
-
-    exports.writeDoubleBE = function writeDoubleLE( buf, v, offset ) {
-        exports.writeDouble(doubleBytes, v);
-        copyOutBE(8, doubleBytes, buf, offset);
-    }
-
 
     // accelerate access
     function Dummy() {};
@@ -66,37 +28,18 @@
 }).call(this);
 
 
-function copyOutLE( n, array, buf, offset ) {
-    offset = offset || 0;
-    for (var i=0; i<n; i++) buf[offset + i] = array[i];
+function readWord( buf, offs, dirn ) {
+    var a = buf[offs++], b = buf[offs++], c = buf[offs++], d = buf[offs];
+    return (dirn === 'bige')
+        ? ((a << 24) >>> 0) + (b << 16) + (c << 8) + (d)
+        : ((d << 24) >>> 0) + (c << 16) + (b << 8) + (a);
 }
 
-function copyOutBE( n, array, buf, offset ) {
-    offset = offset || 0;
-    for (var i=0; i<n; i++) buf[offset + i] = array[n - 1 - i];
-}
-
-function copyInLE( n, array, buf, offset ) {
-    offset = offset || 0;
-    for (var i=0; i<n; i++) array[i] = buf[offset + i];
-}
-
-function copyInBE( n, array, buf, offset ) {
-    offset = offset || 0;
-    for (var i=0; i<n; i++) array[n - 1 - i] = buf[offset + i];
-}
-
-
-function decodeUInt32( buf, offs ) {
-    return buf[offs++] + (buf[offs++] << 8) + (buf[offs++] << 16) + ((buf[offs++] << 24) >>> 0);
-    return buf[0] + (buf[1] << 8) + (buf[2] << 16) + ((buf[3] << 24) >>> 0);
-}
-
-function encodeUInt32( buf, v ) {
-    buf[0] = (v) & 0xff;
-    buf[1] = (v >>> 8) & 0xff;
-    buf[2] = (v >>> 16) & 0xff;
-    buf[3] = (v >>> 24) & 0xff;
+function writeWord( buf, v, offs, dirn ) {
+    var a = (v >>> 24) & 0xff, b = (v >> 16) & 0xff, c = (v >> 8) & 0xff, d = (v) & 0xff;
+    (dirn === 'bige')
+        ? (buf[offs++] = a, buf[offs++] = b, buf[offs++] = c, buf[offs] = d)
+        : (buf[offs++] = d, buf[offs++] = c, buf[offs++] = b, buf[offs] = a)
 }
 
 
@@ -114,9 +57,9 @@ var _rshift20 = (1 / 0x100000);         // >> 20 for floats
 var _lshift32 = (1 * 0x100000000);      // << 32
 var _rshift52 = (1 * _rshift32 * _rshift20);    // >> 52
 var _rshift1023 = pow2(-1023);          // 2^-1023
-function readDouble( buf ) {
-    var lowWord = decodeUInt32(buf, 0);
-    var highWord = decodeUInt32(buf, 0);
+function readDouble( buf, offset, dirn ) {
+    var highWord = (dirn === 'bige') ? readWord(buf, offset, 'bige') : readWord(buf, offset + 4, 'le');
+    var lowWord = (dirn === 'bige') ? readWord(buf, offset + 4, 'bige') : readWord(buf, offset, 'le');
     var mantissa = (highWord & 0x000FFFFF) * _lshift32 + lowWord;
     var exponent = (highWord & 0x7FF00000) >> 20;
     //var sign = (highWord >> 31);
@@ -142,6 +85,7 @@ function readDouble( buf ) {
         return value = mantissa ? NaN : (highWord >> 31) ? -Infinity : Infinity;
     }
 }
+
 //
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
 // see https://en.wikipedia.org/wiki/Single-precision_floating-point_format
@@ -151,22 +95,22 @@ function readDouble( buf ) {
 // 00.. FE                     normalized       2^(exp-127) * (1. + (mantissa / 2^23))
 // FF          +/-Infinity     NaN              -
 //
-var _rshift23 = pow2(-23);      // >> 23 for floats
-var _rshift127 = pow2(-127);    // 2^-127
-function readFloat( buf ) {
-    var word = decodeUInt32(buf, 0);
+var _rshift23 = Math.pow(2, -23);      // >> 23 for floats
+var _rshift127 = Math.pow(2, -127);    // 2^-127
+// sign = (word >> 31);
+function readFloat( buf, offset, dirn ) {
+    var word = readWord(buf, offset, dirn);
     var mantissa = (word & 0x007FFFFF);
     var exponent = (word & 0x7F800000) >>> 23;
-    //var sign =     (word >> 31);
 
     var value;
     if (exponent === 0x000) {
-        //value = mantissa ? (mantissa * _rshift23) * 2 * _rshift127 : 0.0;
-        value = mantissa ? (mantissa * _rshift23) * pow2(-127 + 1) : 0.0;
+        value = mantissa ? (mantissa * _rshift23) * 2 * _rshift127 : 0.0;
+        //value = mantissa ? (mantissa * pow2(2, 1 - 23 - 127)) : 0.0;
         return (word >> 31) ? -value : value;
     }
     else if (exponent < 0xff) {
-        value = (1 + mantissa * _rshift23) * pow2(exponent) * _rshift127;
+        value = (1 + mantissa * _rshift23) * pow2(exponent - 127) // * _rshift127;
         return (word >> 31) ? -value : value;
     }
     else {
@@ -174,6 +118,7 @@ function readFloat( buf ) {
         return value;
     }
 }
+
 // given an exponent n, return 2**n
 // n is always an integer, faster to shift when possible
 // Note that nodejs Math.pow() is faster than a lookup table (may be caching)
@@ -182,73 +127,95 @@ function pow2( exp ) {
                       : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
 }
 
-// given a value v, return its integer log_2 (ie, its binary exponent)
-// returns the 0-based offset of the msbit set, 0 => 1, +n => 2^n, -n => 2^-n
+// given a value v, normalize it to between 1 and less than 2 with a binary exponent
+// The exponent is the number of bit places it was shifted, positive if v was >= 2.
 // The special values 0, -0, NaN, +Infinity and -Infinity are not handled here.
+var _billion = 0x40000000000;
+var _billionth = 1 / _billion;
 function normalize( v, parts ) {
-    var pow = 0;
+    var exp = 0;
 
-// FIXME: make O() logarithmic in num bits, not linear
     if (v >= 2) {
-        do { v /= 2; pow += 1 } while (v >= 2);
+        if (v >= _billion) for (var bits = 512; bits >= 32; bits /= 2) {
+            if (v >= pow2(bits)) { exp += bits; v /= pow2(bits); }
+        }
+        while (v >= 2) { v /= 2; exp += 1 }
     } else {
-        while (v < 1) { v *= 2; pow -= 1 }
+        if (v <= _billionth) for (var bits = -512; bits <= -32; bits /= 2) {
+            if (v <= pow2(bits)) { exp -= bits; v *= pow2(bits) }
+        }
+        while (v < 1) { v *= 2; exp -= 1 }
     }
 
     // TODO: pass in num bits, and normalize denorms too
 
-    parts.exp = pow;
+    parts.exp = exp;
     parts.mant = v;
 }
 
+// round the fraction in v to scale = 2^n bits
+// https://blog.angularindepth.com/how-to-round-binary-fractions-625c8fa3a1af
+// round to nearest, but round a 0.5 tie to even (0.5 to 0.0 and 1.5 to 2.0)
+function roundMantissa( v, scale ) {
+    v *= scale;
+    return ((v - Math.floor(v) !== 0.5) || (v & 1)) ? v + 0.5 : v;
+}
 
-var floatArray = [0, 0, 0, 0];
-var floatBuf = new Buffer(4);
-var floatParts = { exp: 0, mant: 0 };
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
-var floatOverflow = Math.pow(2, 127);   // FIXME: verify max possible exp, given +127 bias
-var floatDenorm = Math.pow(2, -127);    // FIXME: verify min
-var floatUnderflow = Math.pow(2, -127 - 23); // FIXME: verify min possible exp, given +127 bias
-function writeFloat( buf, v ) {
-    var word;
-    var sign = (v < 0) ? ((v = -v), 1) : 0;
+function writeFloat( buf, v, offset, dirn ) {
+    var norm = { exp: 0, mant: 0 };
+    var word, sign = 0;
+    if (v < 0) { sign = 1; v = -v; }
 
-    if (v === 0) word = (1/v === -Infinity) ? 0x80000000 : 0x00000000;          // -0, +0
-    else if (isNaN(v)) word = 0x7FC00000;                                       // NaN
-    else if (v === Infinity) word = sign ? 0xFF800000 : 0x7F800000;             // -Infinity, +Infinity
-    else {
-        normalize(v, floatParts);
-        floatParts.exp += 127;          // bias exponent
-
-        if (floatParts.exp <= 0) {       // denormalized number, or underflow
-            floatParts.mant /= 2;
-// FIXME: make O() logarithmic in num bits, not linear
-            while (floatParts.exp < 0) { floatParts.exp += 1; floatParts.mant /= 2 }    // denorm
-            floatParts.mant = (floatParts.mant * 0x800000) + 0.5;
-            if (floatParts.mant >= 0x800000) { floatParts.exp += 1; floatParts.mant /= 2 }
+    if (! (v && v < Infinity)) {
+        if (v === 0) {
+            word = (1/v < 0) ? 0x80000000 : 0x00000000;         // -0, +0
         }
-        else {                          // normal number, or overflow
-            floatParts.mant = (floatParts.mant - 1) * 0x800000 + 0.5;
-            if (floatParts.mant >= 0x800000) { floatParts.mant /= 2; floatParts.exp += 1 }
-            if (floatParts.exp > 254) { floatParts.exp = 255; floatParts.mant = 0 }         // overflow to Infinity
+        else if (isNaN(v)) {
+            word = 0x7FC00000;                                  // NaN
         }
-
-        word = ((sign << 31) >>> 0) | (floatParts.exp << 23) | (floatParts.mant >>> 0);
+        else if (v === Infinity) {
+            word = sign ? 0xFF800000 : 0x7F800000;              // -Infinity, +Infinity
+        }
     }
-    encodeUInt32(buf, word);
-    return buf;
+    else {
+        normalize(v, norm);             // separate exponent and mantissa
+        norm.exp += 127;                // bias exponent
 
-    buf[0] = (sign << 7) | (floatParts.exp >>> 1);
-    buf[1] = ((floatParts.exp << 7) & 0x80) | ((floatParts.mant * 256) & 0xFF);
-    buf[2] = ((floatParts.mant * 256*256) & 0xFF);
-    buf[3] = ((floatParts.mant * 256*256*256) & 0xFF);
+        if (norm.exp <= 0) {                                    // denormalized float
+            // denormalized number
+            if (norm.exp <= -25) {      // too small, underflow to zero.  -24 might round up though.
+                norm.exp = norm.mant = 0;
+            } else {                    // denormalize
+                if (norm.exp < -16) { norm.exp += 16; norm.mant *= pow2(-16) }
+                if (norm.exp < -8) { norm.exp += 8; norm.mant *= pow2(-8) }
+                while (norm.exp < 0) { norm.exp += 1; norm.mant /= 2 }
+                norm.mant = roundMantissa(norm.mant, 0x400000);
+                if (norm.mant >= 0x800000) {
+                    // rounding could re-normalize
+                    if (norm.exp === 0) norm.mant -= 0x800000;
+                    else { norm.exp += 1; norm.mant /= 2; }
+                }
+            }
+        } else {                                                // normal float
+            // normal number, or overflow
+            norm.mant = roundMantissa(norm.mant - 1, 0x800000);
+            // if rounding overflows into the hidden 1s place, hide it and adjust the exponent
+            if (norm.mant >= 0x800000) { norm.mant -= 0x800000; norm.exp += 1 }
+            if (norm.exp > 254) { norm.exp = 255; norm.mant = 0 }               // overflow to Infinity
+        }
+
+        word = ((sign << 31) >>> 0) | (norm.exp << 23) | (norm.mant >>> 0);
+    }
+    writeWord(buf, word, offset, dirn);
 }
 
 var doubleArray = [0, 0, 0, 0, 0, 0, 0, 0];
 var doubleBuf = new Buffer(8);
-function writeDouble( buf, v ) {
+function writeDouble( buf, v, offset, dirn ) {
     // WRITEME
-    doubleBuf.writeDoubleLE(v, 0);
-    for (var i=0; i<8; i++) buf[i] = doubleBuf[i];
-    return doubleBuf;
+    (dirn === 'bige')
+        ? doubleBuf.writeDoubleBE(v, 0)
+        : doubleBuf.writeDoubleLE(v, 0);
+    for (var i=0; i<8; i++) buf[offset + i] = doubleBuf[i];
 }
