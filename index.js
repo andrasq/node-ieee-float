@@ -173,11 +173,11 @@ function writeFloat( buf, v, offset, dirn ) {
         if (v === 0) {
             word = (1/v < 0) ? 0x80000000 : 0x00000000;         // -0, +0
         }
-        else if (isNaN(v)) {
-            word = 0x7FC00000;                                  // NaN
-        }
         else if (v === Infinity) {
             word = sign ? 0xFF800000 : 0x7F800000;              // -Infinity, +Infinity
+        }
+        else {
+            word = 0x7FC00000;                                  // NaN
         }
     }
     else {
