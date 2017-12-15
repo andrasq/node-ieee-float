@@ -146,7 +146,7 @@ function normalize( v, parts ) {
         if (v <= _billionth) for (var bits = -512; bits <= -16; bits /= 2) {
             if (v <= pow2(bits)) { exp -= bits; v *= pow2(bits) }
         }
-        while (v < 1) { v *= 2; exp -= 1 }
+        if (v) while (v < 1) { v *= 2; exp -= 1 }
     }
 
     // TODO: pass in num bits, and normalize denorms too
