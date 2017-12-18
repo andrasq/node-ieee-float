@@ -1,6 +1,8 @@
 ieee-float
 ==========
 
+_WORK IN PROGRESS_
+
 IEEE 754 32-bit and 64-bit floating point JavaScript binary conversion
 
 
