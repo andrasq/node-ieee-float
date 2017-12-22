@@ -21,7 +21,7 @@ Api
 
 ### writeFloatLE( buf, val, [offset] )
 
-Store a little-endian 32-bit float into the buffer or array `buf` starting at `offset`.
+Store a little-endian 32-bit float into the buffer or array `buf` starting at `offset` (default 0).
 No bounds checking is done, will write past the end of the buffer.
 
 ### writeFloatBE( buf, val, [offset] )
@@ -41,19 +41,22 @@ No bounds checking is done, will read past the end of the buffer and return NaN.
 
 ### writeDoubleLE( buf, val, [offset] )
 
-TBD
+Store a little-endian 64-bit double into `buf` starting at `offset` (default offset 0).
+No bounds checking is done, will write past the end of the buffer.
 
 ### writeDoubleBE( buf, val, [offset] )
 
-TBD
+Store a big-endian 64-bit double into `buf` starting at `offset` (default offset 0).
+No bounds checking is done, will write past the end of the buffer.
 
 ### readDoubleLE( buf, [offset] )
 
-TBD
+Extract a little-endian 64-bit double from the bytes in `buf` starting at `offset`.
 
 ### readDoubleBE( buf, [offset] )
 
-TBD
+Extract a big-endian 64-bit double from the bytes in `buf` starting at `offset`.
+
 
 
 Todo

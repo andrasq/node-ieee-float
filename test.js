@@ -10,6 +10,8 @@ var testValues = [
     1.102423499998344e-38,      // large denorm, 1.111 2e-127
     6.3382528129361155e+29,     // mantissa carry-out rounding error
     4.2199627472983003e-11,     // FloatLE rounding error
+    5e-324,
+    1.206082573339918e-308,
 ];
 
 var tmpbuf = new Buffer(10);
@@ -34,6 +36,7 @@ function checkValue( t, val, type ) {
 
 
 module.exports = {
+
     'read and write float': function(t) {
         var tests = testValues;
 
@@ -46,7 +49,6 @@ module.exports = {
     },
 
     'read and write double': function(t) {
-// FIXME: this test is just to catch gross errors, need a doubles specific test set
         var tests = testValues;
 
         for (var i=0; i<tests.length; i++) {
@@ -76,7 +78,7 @@ module.exports = {
     },
 
     'fuzz test double': function(t) {
-        for (var pow = -1050; pow <= 1050; pow++) {
+        for (var pow = -1080; pow <= 1080; pow++) {
             for (var i=0; i<200; i++) {
                 var val = Math.random() * Math.pow(2, pow);
                 checkValue(t, val, 'DoubleLE');
@@ -84,7 +86,7 @@ module.exports = {
         }
         // denorms
         for (var pow = -1080; pow <= -1023; pow++) {
-            for (var i=0; i<10000; i++) {
+            for (var i=0; i<1000; i++) {
                 var val = Math.random() * Math.pow(2, pow);
                 checkValue(t, val, 'DoubleBE');
             }
@@ -110,6 +112,10 @@ module.exports = {
         console.time('readDoubleBE');
         for (var i=0; i<1000000; i++) fp.readDoubleBE(tmpbuf);
         console.timeEnd('readDoubleBE');
+
+        console.time('writeDoubleBE');
+        for (var i=0; i<1000000; i++) fp.writeDoubleBE(tmpbuf);
+        console.timeEnd('writeDoubleBE');
 
         // TODO: once implemented...
         //console.time('writeDoubleBE');
