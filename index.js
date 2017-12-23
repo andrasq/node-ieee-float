@@ -3,9 +3,6 @@
  *
  */
 
-var _2eXp = new Array(); for (var i=0; i<1200; i++) _2eXp[i] = Math.pow(2, i);
-var _2eXn = new Array(); for (var i=0; i<1200; i++) _2eXn[i] = Math.pow(2, -i);
-
 
 ;(function install() {
     var exports = this.exports || typeof global !== 'undefined' && global.exports || this;
@@ -45,15 +42,35 @@ function writeWord( buf, v, offs, dirn ) {
         : (buf[offs++] = d, buf[offs++] = c, buf[offs++] = b, buf[offs] = a)
 }
 
+// write a two-word value, hi being the 32 msb bits and lo the 32 lsb bits
+function writeTwoWords( buf, hi, lo, offs, dirn ) {
+    if (dirn === 'bige') {
+        writeWord(buf, hi, offs, dirn);
+        writeWord(buf, lo, offs + 4, dirn);
+    }
+    else {
+        writeWord(buf, lo, offs, dirn);
+        writeWord(buf, hi, offs + 4, dirn);
+    }
+}
+
+// given an exponent n, return 2**n
+// n is always an integer, faster to shift when possible
+// Note that nodejs Math.pow() is faster than a lookup table (may be caching)
+var _2eXp = new Array(); for (var i=0; i<1200; i++) _2eXp[i] = Math.pow(2, i);
+var _2eXn = new Array(); for (var i=0; i<1200; i++) _2eXn[i] = Math.pow(2, -i);
+function pow2( exp ) {
+    return (exp >= 0) ? _2eXp[exp] : _2eXn[-exp];
+    //return (exp >= 0) ? (exp <  31 ? (1 << exp) :        Math.pow(2, exp))
+    //                  : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
+}
+
 
 // getFloat() from qbson, https://github.com/andrasq/node-qbson:
 /*
  * extract the 64-bit little-endian ieee 754 floating-point value 
  *   see http://en.wikipedia.org/wiki/Double-precision_floating-point_format
  *   1 bit sign + 11 bits exponent + (1 implicit mantissa 1 bit) + 52 mantissa bits
- *
- * Originally from `json-simple`, then `qbson.decode` - AR.
- * SKL 4.5g 52m/s; readFloatLE 15m/s
  */
 var _rshift32 = (1 / 0x100000000);      // >> 32 for floats
 var _rshift20 = (1 / 0x100000);         // >> 20 for floats
@@ -61,11 +78,13 @@ var _lshift32 = (1 * 0x100000000);      // << 32
 var _rshift52 = (1 * _rshift32 * _rshift20);    // >> 52
 var _rshift1023 = pow2(-1023);          // 2^-1023
 function readDouble( buf, offset, dirn ) {
-    if (dirn === 'bige') { var highWord = readWord(buf, offset, 'bige'), lowWord = readWord(buf, offset + 4, 'bige'); }
-    else { var highWord = readWord(buf, offset + 4, 'le'), lowWord = readWord(buf, offset, 'le'); }
+    var w0 = readWord(buf, offset, dirn);
+    var w1 = readWord(buf, offset + 4, dirn);
+    var highWord, lowWord;
+    (dirn === 'bige') ? (highWord = w0, lowWord = w1) : (highWord = w1, lowWord = w0);
     var mantissa = (highWord & 0x000FFFFF) * _lshift32 + lowWord;
-    var exponent = (highWord & 0x7FF00000) >> 20;
-    var sign = (highWord >> 31) || 1;
+    var exponent = (highWord & 0x7FF00000) >>> 20;
+    var sign = (highWord >> 31) || 1;   // -1, +1
 
     var value;
     if (exponent === 0x000) {
@@ -120,26 +139,19 @@ function readFloat( buf, offset, dirn ) {
     //return (word >>> 31) ? -value : value;
 }
 
-// given an exponent n, return 2**n
-// n is always an integer, faster to shift when possible
-// Note that nodejs Math.pow() is faster than a lookup table (may be caching)
-function pow2( exp ) {
-    return (exp >= 0) ? _2eXp[exp] : _2eXn[-exp];
-    //return (exp >= 0) ? (exp <  31 ? (1 << exp) :        Math.pow(2, exp))
-    //                  : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
-}
-
 // given a positive value v, normalize it to between 1 and less than 2 with a binary exponent
 // The exponent is the number of bit places it was shifted, positive if v was >= 2.
 // The special values 0, -0, NaN, +Infinity and -Infinity are not handled here.
 // Looping is faster than (Math.log(v) / Math.LN2) in node-v6, v8, and v9.
 // This function can account for half the time taken to write a double.
-function normalize( v, parts ) {
+var _parts = { exp: 0, mant: 0 };
+function normalize( v ) {
     var exp = 0;
 
     if (v >= 2) {
         exp = countDoublings(1, v);
         v *= pow2(-exp);
+        // if doubled to exactly v/2, adjust up to v
         if (v >= 2) { v /= 2; exp += 1 }
     }
     else if (v < 1) {
@@ -151,8 +163,9 @@ function normalize( v, parts ) {
 
     // TODO: pass in num bits, and normalize straight to mantissa / denorm
 
-    parts.exp = exp;
-    parts.mant = v;
+    _parts.exp = exp;
+    _parts.mant = v;
+    return _parts;
 }
 
 // count how many doublings of a are needed for it be close to b.
@@ -172,113 +185,104 @@ function countDoublings( a, b ) {
     return n;
 }
 
-// round the fraction in v to scale = 2^n bits
+// round the fraction in v and scale up to scale = 2^n bits
 // https://blog.angularindepth.com/how-to-round-binary-fractions-625c8fa3a1af
-// round to nearest, but round a 0.5 tie to even (0.5 to 0.0 and 1.5 to 2.0)
+// Rounding can cause the scaled value to exceed 2^n.
 function roundMantissa( v, scale ) {
-    if (v === 1) return scale;
     v *= scale;
+    // round to nearest, but round a 0.5 tie to even (0.5 to 0.0 and 1.5 to 2.0)
     return ((v - Math.floor(v) !== 0.5) || (v & 1)) ? v + 0.5 : v;
 }
-//function roundToEven( v ) {
-//    if ((v & 1) == 0 && (v - Math.floor(v)) === 0.5) v -= 0.5;
-//    else v += 0.5;
-//}
 
-// float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
+// float32: 1 sign + 8 exponent + (1 implied mantissa 1 bit) + 23 stored mantissa bits
 // NaN types: quiet Nan = x.ff.8xxx, signaling NaN = x.ff.0xx1 (msb zero, at least one other bit set)
 // JavaScript built-in NaN is the non-signaling 7fc00000, but arithmetic can yield a negative NaN ffc00000.
-var norm = { exp: 0, mant: 0 };
 function writeFloat( buf, v, offset, dirn ) {
-    norm.exp = norm.mant = 0;
-    var word, sign = 0;
-    if (v < 0) { sign = 1; v = -v; }
+    var norm, word, sign = 0;
+    if (v < 0) { sign = 0x80000000; v = -v; }
 
     if (! (v && v < Infinity)) {
-        if (v === 0) {
-            word = (1/v < 0) ? 0x80000000 : 0x00000000;         // -0, +0
+        if (v === 0) {                  // -0, +0
+            word = (1/v < 0) ? 0x80000000 : 0x00000000;
         }
-        else if (v === Infinity) {
-            word = sign ? 0xFF800000 : 0x7F800000;              // -Infinity, +Infinity
+        else if (v === Infinity) {      // -Infinity, +Infinity
+            word = sign | 0x7F800000;
         }
-        else {
-            word = 0x7FC00000;                                  // NaN
+        else {                          // NaN - positive, non-signaling
+            word = 0x7FC00000;
         }
+        writeWord(buf, word, offset, dirn);
     }
     else {
-        normalize(v, norm);             // separate exponent and mantissa
+        norm = normalize(v);            // separate exponent and mantissa
         norm.exp += 127;                // bias exponent
 
         if (norm.exp <= 0) {            // denormalized number
             if (norm.exp <= -25) {      // too small, underflow to zero.  -24 might round up though.
-                norm.exp = norm.mant = 0;
+                norm.mant = 0;
+                norm.exp = 0;
             } else {                    // denormalize
                 norm.mant = roundMantissa(norm.mant, pow2(22 + norm.exp));
-                norm.exp = 0;
+                norm.exp = 0;           // rounding can carry out and re-normalize the number
+                if (norm.mant >= 0x800000) { norm.mant -= 0x800000; norm.exp += 1 }
             }
-        } else {                        // normal number, or overflow
+        } else {
             norm.mant = roundMantissa(norm.mant - 1, 0x800000);
-            if (norm.exp > 254) { norm.exp = 255; norm.mant = 0 }               // overflow to Infinity
+            // if rounding overflowed into the hidden 1s place, hide it and adjust the exponent
+            if (norm.mant >= 0x800000) { norm.mant -= 0x800000; norm.exp += 1 }
+            if (norm.exp > 254) {       // overflow to Infinity
+                norm.mant = 0;
+                norm.exp = 255;
+            }
         }
 
-        // if rounding overflows into the hidden 1s place, hide it and adjust the exponent
-        if (norm.mant >= 0x800000) { norm.mant -= 0x800000; norm.exp += 1 }
-
-        word = ((sign << 31) >>> 0) | (norm.exp << 23) | (norm.mant >>> 0);
+        word = sign | (norm.exp << 23) | norm.mant;
+        writeWord(buf, word, offset, dirn);
     }
-    writeWord(buf, word, offset, dirn);
 }
 
-//   1 bit sign + 11 bits exponent + (1 implicit mantissa 1 bit) + 52 mantissa bits
-//
+// double64: 1 bit sign + 11 bits exponent + (1 implied mantissa 1 bit) + 52 stored mantissa bits
+// Writing doubles is simpler than floats, because the internal javascript 64-bit floats
+// are identical to the stored representation, and thus will not overflow or underflow.
 var doubleArray = [0, 0, 0, 0, 0, 0, 0, 0];
 var doubleBuf = new Buffer(8);
 var _2e52 = Math.pow(2, 52);
-var norm = { exp: 0, mant: 0 };
 function writeDouble( buf, v, offset, dirn ) {
-    norm.exp = norm.mant = 0;
-    var highWord, lowWord, sign = 0;
+    var norm, highWord, lowWord, sign = 0;
     if (v < 0) { sign = 0x80000000; v = -v; }
 
     if (! (v && v < Infinity)) {
-        if (v === 0) {
-            highWord = (1/v < 0) ? 0x80000000 : 0;              // -0, +0
+        if (v === 0) {                  // -0, +0
+            highWord = (1/v < 0) ? 0x80000000 : 0;
             lowWord = 0;
         }
-        else if (v === Infinity) {
-            highWord = (sign + 0x7FF00000);                     // -Infinity, +Infinity
+        else if (v === Infinity) {      // -Infinity, +Infinity
+            highWord = (sign + 0x7FF00000);
             lowWord = 0;
         }
-        else {
-            highWord = 0x7FF80000;                              // NaN
+        else {                          // NaN - positive, non-signaling
+            highWord = 0x7FF80000;
             lowWord = 0;
         }
+        writeTwoWords(buf, highWord, lowWord, offset, dirn);
     }
     else {
-        normalize(v, norm);             // separate exponent and mantissa
+        norm = normalize(v);            // separate exponent and mantissa
         norm.exp += 1023;               // bias exponent
 
         if (norm.exp <= 0) {            // denormalized
-            if (norm.exp <= -52) {
-                norm.exp = norm.mant = 0;               // underflow to 0
-            } else {
-                norm.mant = roundMantissa(norm.mant, pow2(51 + norm.exp));
-                norm.exp = 0;
-            }
+            // JavaScript numbers can not hold values small enough to underflow
+            // and no need to round, all bits will be written
+            norm.mant *= pow2(51 + norm.exp);
+            norm.exp = 0;
         }
         else {
-            norm.mant = roundMantissa(norm.mant - 1, _2e52); // - _2e52;
-            if (norm.exp >= 2047) { norm.exp = 2047; norm.mant = 0 }        // overflow to Infinity
+            // no need to round, all bits will be written
+            norm.mant = (norm.mant - 1) * _2e52;
         }
 
-        // if rounding overflows into the hidden 1s place, hide it and adjust the exponent
-        if (norm.mant >= _2e52) { norm.mant -= _2e52; norm.exp += 1; }  // overflow into hidden 1s bit
-
-        // mask the quotient else javascript rounds the sum
-        highWord = sign + (norm.exp << 20) + ((norm.mant / 0x100000000) & 0xFFFFF) ;
+        highWord = sign | (norm.exp << 20) | (norm.mant / 0x100000000);
         lowWord = norm.mant >>> 0;
+        writeTwoWords(buf, highWord, lowWord, offset, dirn);
     }
-
-    if (dirn === 'bige') { writeWord(buf, highWord, offset, 'bige'); writeWord(buf, lowWord, offset + 4, 'bige') }
-    else { writeWord(buf, highWord, offset + 4, 'le'); writeWord(buf, lowWord, offset, 'le') }
 }

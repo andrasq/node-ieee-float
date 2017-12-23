@@ -3,13 +3,8 @@
 var fp = require('./');
 
 var testValues = [
-    1024,
-    192648575.99999553,
-    1e10, 1e203,
-    5e-324, 1e-10,
-    Math.pow(2, 10), Math.pow(2, 100),
 
-    0, -0, 1, -1, 1e10, -1e10, 1e-10, -1e-10,
+    0, -0, 1, -1, 1e10, -1e10, 1e-10, -1e-10, 123e10, -123e10, 123e-10, -123e-10,
     0.25, Math.pow(2, 40), NaN, Infinity, -Infinity,
     1 * Math.pow(2, 129), 1 * Math.pow(2, -129),
     1.0171355313990822e-45,     // tiny denorm, just 1 bit
@@ -18,6 +13,13 @@ var testValues = [
     4.2199627472983003e-11,     // FloatLE rounding error
     5e-324,
     1.206082573339918e-308,
+
+    1024,
+    192648575.99999553,
+    1e203,
+    Math.pow(2, 10), Math.pow(2, 100),
+
+    1.1754942807573643e-38,     // 0xFFFFFF * Math.pow(2, -126-24), denorm float that rounds to norm
 ];
 
 var tmpbuf = new Buffer(10);
@@ -136,9 +138,10 @@ module.exports = {
 
     'float speed 1m': function(t) {
         tmpbuf.writeFloatBE(1.5, 0);
+        var x;
 
         console.time('readFloatBE');
-        for (var i=0; i<1000000; i++) fp.readFloatBE(tmpbuf);
+        for (var i=0; i<1000000; i++) x = fp.readFloatBE(tmpbuf);
         console.timeEnd('readFloatBE');
 
         console.time('writeFloatBE');
@@ -150,20 +153,15 @@ module.exports = {
         console.timeEnd('writeFloatLE');
 
         console.time('readDoubleBE');
-        for (var i=0; i<1000000; i++) fp.readDoubleBE(tmpbuf);
+        for (var i=0; i<1000000; i++) x = fp.readDoubleBE(tmpbuf);
         console.timeEnd('readDoubleBE');
 
         console.time('writeDoubleBE');
         for (var i=0; i<1000000; i++) fp.writeDoubleBE(tmpbuf);
         console.timeEnd('writeDoubleBE');
 
-        // TODO: once implemented...
-        //console.time('writeDoubleBE');
-        //for (var i=0; i<1000000; i++) fp.writeDoubleBE(tmpbuf);
-        //console.timeEnd('writeDoubleBE');
-
         console.time('Buffer.readFloatBE');
-        for (var i=0; i<1000000; i++) tmpbuf.readFloatBE(0);
+        for (var i=0; i<1000000; i++) x = tmpbuf.readFloatBE(0);
         console.timeEnd('Buffer.readFloatBE');
 
         console.time('Buffer.writeFloatBE');
@@ -171,7 +169,7 @@ module.exports = {
         console.timeEnd('Buffer.writeFloatBE');
 
         console.time('Buffer.readDoubleBE');
-        for (var i=0; i<1000000; i++) tmpbuf.readDoubleBE(0);
+        for (var i=0; i<1000000; i++) x = tmpbuf.readDoubleBE(0);
         console.timeEnd('Buffer.readDoubleBE');
 
         console.time('Buffer.writeDoubleBE');
