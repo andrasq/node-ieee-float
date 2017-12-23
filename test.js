@@ -3,7 +3,9 @@
 var fp = require('./');
 
 var testValues = [
-1e10, 1e203,
+    1024,
+    192648575.99999553,
+    1e10, 1e203,
     5e-324, 1e-10,
     Math.pow(2, 10), Math.pow(2, 100),
 
@@ -58,6 +60,30 @@ module.exports = {
         for (var i=0; i<tests.length; i++) {
             checkValue(t, tests[i], 'DoubleLE');
             checkValue(t, tests[i], 'DoubleBE');
+        }
+
+        t.done();
+    },
+
+    'synthetic dataset': function(t) {
+        var bitset = [ 0x0, 0x1, 0x11, 0x101, 0x111];
+        var bitoffsets = [3, 21, 22, 23, 31, 32, 33, 51, 52, 53];
+
+        for (var base = -1075; base < 1025; base++) {
+            for (var bits=0; bits<bitset.length; bits++) {
+                for (var bitoffs=0; bitoffs<bitoffsets.length; bitoffs++) {
+                    // test with a walking "1.00...0xxx" pattern, with bitpos fraction digits
+                    var bitval = bitset[bits];
+                    var bitpos = bitoffsets[bitoffs];
+                    var val = (1 + bitval * Math.exp(2, -bitpos)) * Math.pow(2, base);
+                    checkValue(t, val, 'FloatLE');
+                    checkValue(t, val, 'FloatBE');
+                    checkValue(t, val, 'DoubleLE');
+                    checkValue(t, val, 'DoubleBE');
+
+                    // test with the bit pattern itself
+                }
+            }
         }
 
         t.done();

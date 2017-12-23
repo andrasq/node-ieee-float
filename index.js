@@ -140,6 +140,7 @@ function normalize( v, parts ) {
     if (v >= 2) {
         exp = countDoublings(1, v);
         v *= pow2(-exp);
+        if (v >= 2) { v /= 2; exp += 1 }
     }
     else if (v < 1) {
         exp = countDoublings(v, 2);
@@ -271,8 +272,9 @@ function writeDouble( buf, v, offset, dirn ) {
         // if rounding overflows into the hidden 1s place, hide it and adjust the exponent
         if (norm.mant >= _2e52) { norm.mant -= _2e52; norm.exp += 1; }  // overflow into hidden 1s bit
 
-        highWord = sign + (norm.exp << 20) + (norm.mant / 0x100000000) ;
-        lowWord = (norm.mant & 0xFFFFFFFF) >>> 0;
+        // mask the quotient else javascript rounds the sum
+        highWord = sign + (norm.exp << 20) + ((norm.mant / 0x100000000) & 0xFFFFF) ;
+        lowWord = norm.mant >>> 0;
     }
 
     if (dirn === 'bige') { writeWord(buf, highWord, offset, 'bige'); writeWord(buf, lowWord, offset + 4, 'bige') }
