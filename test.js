@@ -110,7 +110,7 @@ module.exports = {
         // denorms
         for (var pow = -151; pow <= -126; pow++) {
             for (var i=0; i<10000; i++) {
-                var val = Math.random() * Math.pow(2, pow);
+                var val = Math.pow(2, pow) + 256 * Math.random();
                 checkValue(t, val, 'FloatBE');
             }
         }
@@ -120,7 +120,7 @@ module.exports = {
     'fuzz test double': function(t) {
         for (var pow = -1080; pow <= 1080; pow++) {
             for (var i=0; i<200; i++) {
-                var val = Math.random() * Math.pow(2, pow);
+                var val = Math.pow(2, pow) * 256 * Math.random();
                 checkValue(t, val, 'DoubleLE');
             }
         }
