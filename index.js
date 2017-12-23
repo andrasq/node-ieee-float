@@ -186,6 +186,8 @@ function roundToEven( v ) {
 }
 
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
+// NaN types: quiet Nan = x.ff.8xxx, signaling NaN = x.ff.0xx1 (msb zero, at least one other bit set)
+// JavaScript built-in NaN is the non-signaling 7fc00000, but arithmetic can yield a negative NaN ffc00000.
 var norm = { exp: 0, mant: 0 };
 function writeFloat( buf, v, offset, dirn ) {
     norm.exp = norm.mant = 0;

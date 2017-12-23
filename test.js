@@ -26,6 +26,11 @@ function checkValue( t, val, type ) {
     var read = 'read' + type;
     var write = 'write' + type;
 
+    // nodejs stores NaN from the math library as received, which can be
+    // positive/negative/signaling/non-signaling.  Normalize them all to
+    // the standard javascript NaN so the bit patterns are identical.
+    if (isNaN(val)) val = NaN;
+
     tmpbuf[write](val, 0);
     var expect = tmpbuf[read](0);
 
@@ -82,6 +87,11 @@ module.exports = {
                     checkValue(t, val, 'DoubleBE');
 
                     // test with the bit pattern itself
+                    var val = (bitval) * Math.pow(2, base);
+                    checkValue(t, val, 'FloatLE');
+                    checkValue(t, val, 'FloatBE');
+                    checkValue(t, val, 'DoubleLE');
+                    checkValue(t, val, 'DoubleBE');
                 }
             }
         }
