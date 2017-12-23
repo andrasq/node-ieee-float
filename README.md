@@ -1,5 +1,8 @@
 ieee-float
 ==========
+[![Build Status](https://api.travis-ci.org/andrasq/node-ieee-float.svg?branch=master)](https://travis-ci.org/andrasq/node-ieee-float?branch=master)
+[![Coverage Status](https://codecov.io/github/andrasq/node-ieee-float/coverage.svg?branch=master)](https://codecov.io/github/andrasq/node-ieee-float?branch=master)
+
 
 _WORK IN PROGRESS_
 

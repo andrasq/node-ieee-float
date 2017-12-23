@@ -125,8 +125,8 @@ function readFloat( buf, offset, dirn ) {
 // Note that nodejs Math.pow() is faster than a lookup table (may be caching)
 function pow2( exp ) {
     return (exp >= 0) ? _2eXp[exp] : _2eXn[-exp];
-    return (exp >= 0) ? (exp <  31 ? (1 << exp) :        Math.pow(2, exp))
-                      : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
+    //return (exp >= 0) ? (exp <  31 ? (1 << exp) :        Math.pow(2, exp))
+    //                  : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
 }
 
 // given a positive value v, normalize it to between 1 and less than 2 with a binary exponent
@@ -180,10 +180,10 @@ function roundMantissa( v, scale ) {
     v *= scale;
     return ((v - Math.floor(v) !== 0.5) || (v & 1)) ? v + 0.5 : v;
 }
-function roundToEven( v ) {
-    if ((v & 1) == 0 && (v - Math.floor(v)) === 0.5) v -= 0.5;
-    else v += 0.5;
-}
+//function roundToEven( v ) {
+//    if ((v & 1) == 0 && (v - Math.floor(v)) === 0.5) v -= 0.5;
+//    else v += 0.5;
+//}
 
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
 // NaN types: quiet Nan = x.ff.8xxx, signaling NaN = x.ff.0xx1 (msb zero, at least one other bit set)
