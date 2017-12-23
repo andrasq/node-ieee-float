@@ -3,6 +3,10 @@
 var fp = require('./');
 
 var testValues = [
+1e10, 1e203,
+    5e-324, 1e-10,
+    Math.pow(2, 10), Math.pow(2, 100),
+
     0, -0, 1, -1, 1e10, -1e10, 1e-10, -1e-10,
     0.25, Math.pow(2, 40), NaN, Infinity, -Infinity,
     1 * Math.pow(2, 129), 1 * Math.pow(2, -129),

@@ -129,39 +129,46 @@ function pow2( exp ) {
                       : (exp > -31 ? (1 / (1 << -exp)) : Math.pow(2, exp));
 }
 
-// given a value v, normalize it to between 1 and less than 2 with a binary exponent
+// given a positive value v, normalize it to between 1 and less than 2 with a binary exponent
 // The exponent is the number of bit places it was shifted, positive if v was >= 2.
 // The special values 0, -0, NaN, +Infinity and -Infinity are not handled here.
-// Scaling v by looping 6 bits at a time is fast in node-v6, looping is slow in v8, v9.
-// Looping is faster than (Math.log(v) / Math.LN2) in node-v6, slower in v8, v9.
-// Under about 1e9 it is faster to avoid Math.log stepping 6 bits at a time.
+// Looping is faster than (Math.log(v) / Math.LN2) in node-v6, v8, and v9.
+// This function can account for half the time taken to write a double.
 function normalize( v, parts ) {
     var exp = 0;
 
     if (v >= 2) {
-        if (v >= 1e8) {
-            var bits = (Math.log(v) / Math.LN2 - 1) >> 0;
-            v *= pow2(-bits); exp += bits;
-        }
-        else while (v >= 64) { exp += 6; v /= 64; }
-        while (v >= 2) { v /= 2; exp += 1 }
-    } else {
-        if (v) {
-            if (v <= 1e-8) {
-                var bits = Math.floor(Math.log(v) / Math.LN2) + 1;
-                // do not allow 2^(-bits) to overflow past 2^1023:  2^(-1050) is a number, but 2^(1050) is Infinity
-                if (bits < -1000) { exp -= 1000; v *= pow2(1000); bits += 1000 }
-                v *= pow2(-bits); exp += bits;
-            }
-            else while (v <= 1/64) { exp -= 6; v *= 64; }
-            while (v < 1) { exp -= 1; v *= 2; }
-        }
+        exp = countDoublings(1, v);
+        v *= pow2(-exp);
+    }
+    else if (v < 1) {
+        exp = countDoublings(v, 2);
+        if (exp < 1020) v *= pow2(exp);
+        else { v *= pow2(exp - 100); v *= pow2(100); }
+        exp = -exp;
     }
 
     // TODO: pass in num bits, and normalize straight to mantissa / denorm
 
     parts.exp = exp;
     parts.mant = v;
+}
+
+// count how many doublings of a are needed for it be close to b.
+// Returns a shift count that grows a to be at least b/2 but less than b.
+// Doubling 1 toward v ensures that (v >> n) >= 1 < 2,
+// and doubling from v toward 2 ensures that (v << n) >= 1 < 2.
+var _2e256 = Math.pow(2, 256);
+var _2e32 = Math.pow(2, 32);
+function countDoublings( a, b ) {
+    var n = 0;
+
+    while (a * _2e256 < b) { a *= _2e256; n += 256 }
+    while (a * _2e32 < b) { a *= _2e32; n += 32 }
+    while (a * 0x10 < b) { a *= 0x10; n += 4 }
+    while (a * 2 < b) { a *= 2; n += 1 }
+
+    return n;
 }
 
 // round the fraction in v to scale = 2^n bits
@@ -178,8 +185,9 @@ function roundToEven( v ) {
 }
 
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
+var norm = { exp: 0, mant: 0 };
 function writeFloat( buf, v, offset, dirn ) {
-    var norm = { exp: 0, mant: 0 };
+    norm.exp = norm.mant = 0;
     var word, sign = 0;
     if (v < 0) { sign = 1; v = -v; }
 
@@ -204,8 +212,6 @@ function writeFloat( buf, v, offset, dirn ) {
             } else {                    // denormalize
                 norm.mant = roundMantissa(norm.mant, pow2(22 + norm.exp));
                 norm.exp = 0;
-
-                    // rounding could re-normalize
             }
         } else {                        // normal number, or overflow
             norm.mant = roundMantissa(norm.mant - 1, 0x800000);
@@ -225,8 +231,9 @@ function writeFloat( buf, v, offset, dirn ) {
 var doubleArray = [0, 0, 0, 0, 0, 0, 0, 0];
 var doubleBuf = new Buffer(8);
 var _2e52 = Math.pow(2, 52);
+var norm = { exp: 0, mant: 0 };
 function writeDouble( buf, v, offset, dirn ) {
-    var norm = { exp: 0, mant: 0 };
+    norm.exp = norm.mant = 0;
     var highWord, lowWord, sign = 0;
     if (v < 0) { sign = 0x80000000; v = -v; }
 
