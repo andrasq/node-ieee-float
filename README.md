@@ -18,6 +18,9 @@ or nodejs Buffers.
     fp.writeFloatLE(output, 1.5);
     // => output = [0, 0, 192, 63]
 
+    var val = fp.readFloatBE(output.reverse());
+    // => 1.5
+
 
 Api
 ---
