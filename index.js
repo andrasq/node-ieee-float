@@ -179,7 +179,7 @@ function normalize( v ) {
 function countDoublings( a, b ) {
     var n = 0;
 
-    while (a * 0x1000000000000000 < b) { a *= 0x10000000000000000; n += 64 }
+    while (a * 0x10000000000000000 < b) { a *= 0x10000000000000000; n += 64 }
     while (a * 0x10000 < b) { a *= 0x10000; n += 16 }
     while (a * 0x40 < b) { a *= 0x40; n += 6 }
     while (a * 2 < b) { a *= 2; n += 1 }
