@@ -115,11 +115,11 @@ function readDouble( buf, offset, dirn ) {
 //
 // float32: 1 sign + 8 exponent + 24 mantissa (23 stored, 1 implied)
 // see https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-// UNTESTED
-// Exponent     Mantissa 0      Mantissa > 0    Value
-// 00          +0, -0          denormalized     2^(  1-127) * (0. + (mantissa / 2^23))
-// 00.. FE                     normalized       2^(exp-127) * (1. + (mantissa / 2^23))
-// FF          +/-Infinity     NaN              -
+//
+// Exponent     Mantissa == 0   Mantissa > 0    Value
+// 00           +0, -0          denormalized    2^(  1-127) * (0. + (mantissa / 2^23))
+// 00.. FE                      normalized      2^(exp-127) * (1. + (mantissa / 2^23))
+// FF           +/-Infinity     NaN             -
 //
 var _rshift23 = Math.pow(2, -23);      // >> 23 for floats
 var _rshift127 = Math.pow(2, -127);    // 2^-127
@@ -161,7 +161,8 @@ function normalize( v ) {
     }
     else if (v < 1) {
         exp = countDoublings(v, 2);
-        if (exp < 1020) v *= pow2(exp);
+        // avoid using pow2 exponents > 1023, they overflow to Infinity
+        if (exp <= 1023) v *= pow2(exp);
         else { v *= pow2(exp - 100); v *= pow2(100); }
         exp = -exp;
     }
