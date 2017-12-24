@@ -175,7 +175,7 @@ function normalize( v ) {
 }
 
 // count how many doublings of a are needed for it be close to b.
-// Returns a shift count that grows a to be at least b/2 but less than b.
+// Returns a shift count that grows (a) to at least (b/2) but less than (b).
 // Doubling 1 toward v ensures that (v >> n) >= 1 < 2,
 // and doubling from v toward 2 ensures that (v << n) >= 1 < 2.
 function countDoublings( a, b ) {
@@ -196,6 +196,7 @@ function countDoublings( a, b ) {
 function roundMantissa( v, scale ) {
     v *= scale;
     // round to nearest, but round a 0.5 tie to even (0.5 to 0.0 and 1.5 to 2.0)
+    // round all numbers with a fraction other than 1/2, and round up odd numbers with
     return ((v - Math.floor(v) !== 0.5) || (v & 1)) ? v + 0.5 : v;
 }
 
