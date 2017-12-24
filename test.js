@@ -1,3 +1,10 @@
+/**
+ * single- and double-precision floating point implementation test
+ *
+ * Copyright (C) 2017 Andras Radics
+ * Licensed under the Apache License, Version 2.0
+ */ 
+
 'use strict';
 
 var fp = require('./');

@@ -1,8 +1,9 @@
 /**
  * pure javascript functions to read and write 32-bit and 64-bit IEEE 754 floating-point
  *
+ * Copyright (C) 2017 Andras Radics
+ * Licensed under the Apache License, Version 2.0
  */
-
 
 ;(function install() {
     var exports = this.exports || typeof global !== 'undefined' && global.exports || this;
@@ -179,6 +180,7 @@ function normalize( v ) {
 function countDoublings( a, b ) {
     var n = 0;
 
+    while (a * 0x1000000000000000000000000000000000000000000000000 < b) { a *= 0x1000000000000000000000000000000000000000000000000; n += 192 }
     while (a * 0x10000000000000000 < b) { a *= 0x10000000000000000; n += 64 }
     while (a * 0x10000 < b) { a *= 0x10000; n += 16 }
     while (a * 0x40 < b) { a *= 0x40; n += 6 }
