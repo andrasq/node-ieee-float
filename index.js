@@ -28,11 +28,13 @@
 }).call(this);
 
 
+// arithmetic operations preserve NaN, but logical ops (, >>, etc) convert them to zero
+// Assemble the word to generate NaN if any reads are undefined (outside the bounds of the array).
 function readWord( buf, offs, dirn ) {
     var a = buf[offs++], b = buf[offs++], c = buf[offs++], d = buf[offs];
     return (dirn === 'bige')
-        ? ((a << 24) >>> 0) + (b << 16) + (c << 8) + (d)
-        : ((d << 24) >>> 0) + (c << 16) + (b << 8) + (a);
+        ? (((((a * 256) + b) * 256) + c) * 256) + d
+        : (((((d * 256) + c) * 256) + b) * 256) + a;
 }
 
 function writeWord( buf, v, offs, dirn ) {
@@ -42,8 +44,8 @@ function writeWord( buf, v, offs, dirn ) {
         : (buf[offs++] = d, buf[offs++] = c, buf[offs++] = b, buf[offs] = a)
 }
 
-// write a two-word value, hi being the 32 msb bits and lo the 32 lsb bits
-function writeTwoWords( buf, hi, lo, offs, dirn ) {
+// write the two-word value [hi,lo] where hi holds the 32 msb bits and lo the 32 lsb bits
+function writeDoubleWord( buf, hi, lo, offs, dirn ) {
     if (dirn === 'bige') {
         writeWord(buf, hi, offs, dirn);
         writeWord(buf, lo, offs + 4, dirn);
@@ -82,9 +84,10 @@ function readDouble( buf, offset, dirn ) {
     var w1 = readWord(buf, offset + 4, dirn);
     var highWord, lowWord;
     (dirn === 'bige') ? (highWord = w0, lowWord = w1) : (highWord = w1, lowWord = w0);
+
     var mantissa = (highWord & 0x000FFFFF) * _lshift32 + lowWord;
     var exponent = (highWord & 0x7FF00000) >>> 20;
-    var sign = (highWord >> 31) || 1;   // -1, +1
+    var sign = (highWord >> 31) || 1;   // -1, 1, or 1 if NaN
 
     var value;
     if (exponent === 0x000) {
@@ -95,7 +98,8 @@ function readDouble( buf, offset, dirn ) {
     }
     else if (exponent < 0x7ff) {
         // normalized value with an implied leading 1 bit and 1023 biased exponent
-        value = (1 + mantissa * _rshift52) * pow2(exponent - 1023);
+        // test for NaN with (mantissa >= 0), and return 0 if NaN ie read from outside buffer bounds
+        value = (mantissa >= 0) ? (1 + mantissa * _rshift52) * pow2(exponent - 1023) : 0.0;
     }
     else {
         // Infinity if zero mantissa (+/- per sign), NaN if nonzero mantissa
@@ -122,7 +126,7 @@ function readFloat( buf, offset, dirn ) {
     var word = readWord(buf, offset, dirn);
     var mantissa = (word & 0x007FFFFF);
     var exponent = (word & 0x7F800000) >>> 23;
-    var sign = (word >> 31) || 1;
+    var sign = (word >> 31) || 1;       // -1, 1, or 1 if NaN
 
     var value;
     if (exponent === 0x000) {
@@ -264,7 +268,7 @@ function writeDouble( buf, v, offset, dirn ) {
             highWord = 0x7FF80000;
             lowWord = 0;
         }
-        writeTwoWords(buf, highWord, lowWord, offset, dirn);
+        writeDoubleWord(buf, highWord, lowWord, offset, dirn);
     }
     else {
         norm = normalize(v);            // separate exponent and mantissa
@@ -283,6 +287,6 @@ function writeDouble( buf, v, offset, dirn ) {
 
         highWord = sign | (norm.exp << 20) | (norm.mant / 0x100000000);
         lowWord = norm.mant >>> 0;
-        writeTwoWords(buf, highWord, lowWord, offset, dirn);
+        writeDoubleWord(buf, highWord, lowWord, offset, dirn);
     }
 }

@@ -35,22 +35,20 @@ No bounds checking is done, will write past the end of the buffer.
 ### readFloatLE( buf, [offset] )
 
 Extract a little-endian 32-bit float from the buffer or array `buf` starting at `offset`.
-No bounds checking is done, will read past the end of the buffer and return NaN.
+No bounds checking is done, will read past the end of the array and return 0.
 
 ### readFloatBE( buf, [offset] )
 
 Extract a big-endian 32-bit float from the buffer or array `buf` starting at `offset`.
-No bounds checking is done, will read past the end of the buffer and return NaN.
+No bounds checking is done, will read past the end of the buffer and return 0.
 
 ### writeDoubleLE( buf, val, [offset] )
 
 Store a little-endian 64-bit double into `buf` starting at `offset` (default offset 0).
-No bounds checking is done, will write past the end of the buffer.
 
 ### writeDoubleBE( buf, val, [offset] )
 
 Store a big-endian 64-bit double into `buf` starting at `offset` (default offset 0).
-No bounds checking is done, will write past the end of the buffer.
 
 ### readDoubleLE( buf, [offset] )
 
@@ -66,6 +64,7 @@ Todo
 ----
 
 - needs more edge and corner case tests
+- perhaps should return NaN (or throw) if reading from outside the array bounds
 
 
 Related Work

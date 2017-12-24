@@ -180,23 +180,32 @@ module.exports = {
     },
 
     'edge cases': {
-        'read past end of buffer': function(t) {
-t.skip();
-            var buf = [0, 0, 0xc0, 0x3f];
-            var x = fp.readFloatLE(buf, 1);
-console.log("AR:", x);
-            t.ok(isNaN(x));
+        'read float from past buffer bounds': function(t) {
+            var buf = [0x3f, 0xc0, 0, 0];  // 1.5
+            t.equal(fp.readFloatBE(buf, 0), 1.5);
+            t.equal(fp.readFloatBE(buf, -1), 0);
+            t.equal(fp.readFloatBE(buf, 1), 0);
             t.done();
         },
 
-        'read before start of buffer': function(t) {
-t.skip();
-            var buf = [0, 0, 0xc0, 0x3f];
-            var x = fp.readFloatLE(buf, -1);
-console.log("AR:", x);
-            t.ok(isNaN(x));
+        'read double from past buffer bounds': function(t) {
+            var buf = [0x3f, 0xf8, 0, 0, 0, 0, 0, 0];  // 1.5
+            t.equal(fp.readDoubleBE(buf, 0), 1.5);
+            t.equal(fp.readDoubleBE(buf, -1), 0);
+            t.equal(fp.readDoubleBE(buf, 1), 0);
             t.done();
         },
+
+        'rounded denorm float overflows into hidden 1 bit': function(t) {
+            var buf = [0, 0, 0, 0];
+            var x = (0xFFFFFF / 0x1000000) * Math.pow(2, -126);
+            t.notEqual(x, Math.pow(2, -126));
+            fp.writeFloatBE(buf, x);
+            t.equal(fp.readFloatBE(buf).toString(16), Math.pow(2, -126).toString(16));
+            t.done();
+        },
+
+        // TEST underflow, overflow, rounding, rounding that re-normalizes, rounding that overflows
 
     },
 }
