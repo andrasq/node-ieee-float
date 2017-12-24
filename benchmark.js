@@ -6,7 +6,7 @@ var qtimeit = require('qtimeit');
 
 var fp = require('./');
 try { var qunpack = require('qunpack') } catch (e) { }
-try { var ieee = require('./buffer_ieee754.js') } catch (e) { }
+try { var ieee754 = require('./buffer_ieee754.js') } catch (e) { }
 
 var ix = 0;
 var buf1 = new Buffer(10), buf2 = new Buffer(10);
@@ -120,29 +120,29 @@ if (qunpack) {
         cb();
     };
 }
-if (ieee) {
-    tests['ieee'] = function(cb) {
-        x = ieee.readIEEE754(getBuff(), 2, 'big', 23, 4);
+if (ieee754) {
+    tests['ieee754'] = function(cb) {
+        x = ieee754.readIEEE754(getBuff(), 2, 'big', 23, 4);
         cb();
     };
 
-    tests['ieee write'] = function(cb) {
-        x = ieee.writeIEEE754(tmpbuf, getValue(), 2, 'big', 23, 4);
+    tests['ieee754 write'] = function(cb) {
+        x = ieee754.writeIEEE754(tmpbuf, getValue(), 2, 'big', 23, 4);
         cb();
     };
 
-    tests['ieee double'] = function(cb) {
-        x = ieee.readIEEE754(getBigBuff(), 2, 'big', 52, 8);
+    tests['ieee754 double'] = function(cb) {
+        x = ieee754.readIEEE754(getBigBuff(), 2, 'big', 52, 8);
         cb();
     };
 
-    tests['ieee double write'] = function(cb) {
-        x = ieee.writeIEEE754(tmpbuf, getValue(), 2, 'big', 52, 8);
+    tests['ieee754 double write'] = function(cb) {
+        x = ieee754.writeIEEE754(tmpbuf, getValue(), 2, 'big', 52, 8);
         cb();
     };
 
-    tests['ieee write big'] = function(cb) {
-        x = ieee.writeIEEE754(tmpbuf, 1e20, 2, 'big', 23, 4);
+    tests['ieee754 write big'] = function(cb) {
+        x = ieee754.writeIEEE754(tmpbuf, 1e20, 2, 'big', 23, 4);
         cb();
     };
 }

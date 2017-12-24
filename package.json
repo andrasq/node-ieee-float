@@ -9,8 +9,7 @@
   "license": "Apache-2.0",
 
   "engines": {
-    "node-comment": "node 0.10.48, 0.11.13, 4.4.0, 5.8.0 produce rounding errors",
-    "node": ">= 6"
+    "node": ">= 0.10"
   },
   "dependencies": {
   },
