@@ -109,17 +109,17 @@ module.exports = {
     },
 
     'fuzz test float': function(t) {
-        // TODO: pick different groups of exponents, bit patterns, and combine them
         for (var pow = -160; pow <= 160; pow++) {
             for (var i=0; i<1000; i++) {
-                var val = Math.random() * Math.pow(2, pow);
+                // generate a random value between 2^(pow-3) and 2^(pow+3)
+                var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'FloatLE');
             }
         }
         // denorms
         for (var pow = -151; pow <= -126; pow++) {
-            for (var i=0; i<10000; i++) {
-                var val = Math.pow(2, pow) + 256 * Math.random();
+            for (var i=0; i<1000; i++) {
+                var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'FloatBE');
             }
         }
@@ -127,16 +127,16 @@ module.exports = {
     },
 
     'fuzz test double': function(t) {
-        for (var pow = -1080; pow <= 1080; pow++) {
-            for (var i=0; i<200; i++) {
-                var val = Math.pow(2, pow) * 256 * Math.random();
+        for (var pow = -1024; pow <= 1025; pow++) {
+            for (var i=0; i<400; i++) {
+                var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'DoubleLE');
             }
         }
         // denorms
-        for (var pow = -1080; pow <= -1023; pow++) {
+        for (var pow = -1075; pow <= -1020; pow++) {
             for (var i=0; i<1000; i++) {
-                var val = Math.random() * Math.pow(2, pow);
+                var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'DoubleBE');
             }
         }
