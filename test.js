@@ -35,25 +35,44 @@ function checkValue( t, val, type ) {
     var read = 'read' + type;
     var write = 'write' + type;
 
-    // nodejs stores NaN from the math library as received, which can be
-    // positive/negative/signaling/non-signaling.  Normalize them all to
-    // the standard javascript NaN so the bit patterns are identical.
-    if (isNaN(val)) val = NaN;
+    if (typeof val === 'number') {
+        // nodejs stores NaN from the math library as received, which can be
+        // positive/negative/signaling/non-signaling.  Normalize them all to
+        // the standard javascript NaN so the bit patterns are identical.
+        if (!val && val !== 0) val = NaN;
 
-    tmpbuf[write](val, 0);
+        tmpbuf[write](val, 0);
+    } else {
+        for (var i=0; i<8; i++) tmpbuf[i] = val[i];
+    }
     var expect = tmpbuf[read](0);
 
-    var v2 = fp[read](tmpbuf);
-
-    if (isNaN(expect)) t.ok(isNaN(v2), "wanted NaN: " + v2);
-    else if (expect == 0 && 1/expect < 0) { t.equal(v2, 0); t.equal(1/v2, -Infinity, "wanted -0: " + v2 + ", " + 1/v2); }
-    else if (expect == 0 && 1/expect > 0) { t.equal(v2, 0); t.equal(1/v2, +Infinity, "wanted +0: " + v2 + ", " + 1/v2); }
+    var v2 = fp[read](tmpbuf, 0);
+    if (!expect) {
+        if (expect !== 0) t.ok(isNaN(v2), "wanted NaN: " + v2);
+        else if (expect == 0 && 1/expect < 0) { t.equal(v2, 0); t.equal(1/v2, -Infinity, "wanted -0: " + v2 + ", " + 1/v2); }
+        else if (expect == 0 && 1/expect > 0) { t.equal(v2, 0); t.equal(1/v2, +Infinity, "wanted +0: " + v2 + ", " + 1/v2); }
+    }
     else t.equal(v2, expect);
 
-    fp[write](fpbuf, val);
-    t.deepEqual(fpbuf, tmpbuf, write + ": " + val);
+    fp[write](fpbuf, expect);
+    if (expect) {
+        // compare non-NaN values directly
+        // the compareBytes loop is faster than deepEqual, use deepEqual for the message
+        if (!compareBytes(fpbuf, tmpbuf, "")) t.deepEqual(fpbuf, tmpbuf, write + " " + expect);
+    }
+    else {
+        // there are many flavors of NaN, check stored (normalized) bit patterns
+        // avoid isNaN, it slows the test greatly
+        tmpbuf[write](expect, 0);
+        if (!compareBytes(fpbuf, tmpbuf, "")) t.deepEqual(fpbuf, tmpbuf, write + " " + expect);
+    }
 }
 
+function compareBytes( a, b ) {
+    for (var i=0; i<8; i++) if (a[i] !== b[i]) return false;
+    return true;
+}
 
 module.exports = {
 
@@ -214,5 +233,37 @@ module.exports = {
 
         // TEST underflow, overflow, rounding, rounding that re-normalizes, rounding that overflows
 
+    },
+
+    'exhaustive test float': function(t) {
+        // 2017-12-24:  X exhaustive test float (4559260.818ms)
+        // Error: the test or one of its setUp/tearDowns did not call done() within 2000 ms
+        t.skip();
+
+        var a, b, c, d;
+        var valbuf = new Buffer([0,0,0,0,0,0,0,0]);
+
+        // clear temps used by checkValue doubles
+        for (var i=0; i<10; i++) {
+            tmpbuf[i] = 0;
+            fpbuf[i] = 0;
+        }
+
+        for (a=0; a<256; a++) {
+            valbuf[0] = a;
+console.log(a);
+            for (b=0; b<256; b++) {
+                valbuf[1] = b;
+console.log(a, b);
+                for (c=0; c<256; c++) {
+                    valbuf[2] = c;
+                    for (d=0; d<256; d++) {
+                        valbuf[3] = d;
+                        checkValue(t, valbuf, 'FloatLE');
+                        checkValue(t, valbuf, 'FloatBE');
+                    }
+                }
+            }
+        }
     },
 }
