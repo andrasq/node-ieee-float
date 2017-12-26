@@ -26,11 +26,17 @@ var testValues = [
     1e203,
     Math.pow(2, 10), Math.pow(2, 100),
 
-    1.1754942807573643e-38,     // 0xFFFFFF * Math.pow(2, -126-24), denorm float that rounds to norm
+    1.1754942807573643e-38,     // 0xFFFFFF / 0x1000000 * Math.pow(2, -126), denorm float that rounds to norm
+    8.758115402030107e-47,      // Math.pow(2, -126-27), undersmall value that rounds to zero
+    1 + (0xffffffffff / 0x10000000000),                 // 1.ffffffffff, overflows into hidden 1s bit after rounding
 ];
 
 var tmpbuf = new Buffer(10);
 var fpbuf = new Buffer(tmpbuf);
+//
+// Check that the value val as read/written by nodejs is bit-for-bit identical to ieee-float.
+// Type is the operation to tests, one of 'FloatLE', 'FloatBE', 'DoubleLE' or 'DoubleBE'.
+//
 function checkValue( t, val, type ) {
     var read = 'read' + type;
     var write = 'write' + type;
@@ -42,10 +48,14 @@ function checkValue( t, val, type ) {
         if (!val && val !== 0) val = NaN;
 
         tmpbuf[write](val, 0);
-    } else {
-        for (var i=0; i<8; i++) tmpbuf[i] = val[i];
+        var expect = tmpbuf[read](0);
+        fp[write](fpbuf, val);
     }
-    var expect = tmpbuf[read](0);
+    else {
+        for (var i=0; i<8; i++) tmpbuf[i] = val[i];
+        var expect = tmpbuf[read](0);
+        fp[write](fpbuf, expect);
+    }
 
     var v2 = fp[read](tmpbuf, 0);
     if (!expect) {
@@ -55,10 +65,9 @@ function checkValue( t, val, type ) {
     }
     else t.equal(v2, expect);
 
-    fp[write](fpbuf, expect);
     if (expect) {
         // compare non-NaN values directly
-        // the compareBytes loop is faster than deepEqual, use deepEqual for the message
+        // the compareBytes loop is faster than deepEqual, but use deepEqual for the error message
         if (!compareBytes(fpbuf, tmpbuf, "")) t.deepEqual(fpbuf, tmpbuf, write + " " + expect);
     }
     else {
