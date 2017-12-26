@@ -4,8 +4,6 @@ ieee-float
 [![Coverage Status](https://codecov.io/github/andrasq/node-ieee-float/coverage.svg?branch=master)](https://codecov.io/github/andrasq/node-ieee-float?branch=master)
 
 
-_WORK IN PROGRESS_
-
 IEEE 754 32-bit and 64-bit floating point JavaScript binary conversion
 
 
@@ -66,13 +64,12 @@ Extract a big-endian 64-bit double from the bytes in `buf` starting at `offset`.
 Todo
 ----
 
-- needs more edge and corner case tests
 - perhaps should return NaN (or throw) if reading from outside the array bounds
 
 
 Related Work
 ------------
 
-- qbson
-- messagepackjs
-- buffalo
+- [qbson](https://github.com/andrasq/node-qbson#readme)
+- [messagepackjs](https://npmjs.com/package/messagepackjs)
+- [buffalo](https://npmjs.com/package/buffalo)

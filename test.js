@@ -108,15 +108,19 @@ module.exports = {
     },
 
     'synthetic dataset': function(t) {
-        var bitset = [ 0x0, 0x1, 0x11, 0x101, 0x111];
+        // suffix bits xxx to form to binary fractions 1.xxx, eg 1.001, 1.010, 1.100, 1.110, 1.111.
+        // The suffix bits are positioned 1-3, 18-21, 19-22 etc binary places after the fraction point.
+        var bitset = [0, 0x001, 0x010, 0x100, 0x110, 0x111];
+        // Suffix bit positions to test mantissa encoding, 32-bit float rounding
         var bitoffsets = [3, 21, 22, 23, 31, 32, 33, 51, 52, 53];
 
-        for (var base = -1075; base < 1025; base++) {
+        for (var base = -1078; base < 1025; base++) {
             for (var bits=0; bits<bitset.length; bits++) {
                 for (var bitoffs=0; bitoffs<bitoffsets.length; bitoffs++) {
                     // test with a walking "1.00...0xxx" pattern, with bitpos fraction digits
                     var bitval = bitset[bits];
                     var bitpos = bitoffsets[bitoffs];
+
                     var val = (1 + bitval * Math.exp(2, -bitpos)) * Math.pow(2, base);
                     checkValue(t, val, 'FloatLE');
                     checkValue(t, val, 'FloatBE');
@@ -137,7 +141,7 @@ module.exports = {
     },
 
     'fuzz test float': function(t) {
-        for (var pow = -160; pow <= 160; pow++) {
+        for (var pow = -128; pow <= 128; pow++) {
             for (var i=0; i<1000; i++) {
                 // generate a random value between 2^(pow-3) and 2^(pow+3)
                 var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
@@ -155,62 +159,19 @@ module.exports = {
     },
 
     'fuzz test double': function(t) {
-        for (var pow = -1024; pow <= 1025; pow++) {
+        for (var pow = -1024; pow <= 1024; pow++) {
             for (var i=0; i<400; i++) {
                 var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'DoubleLE');
             }
         }
         // denorms
-        for (var pow = -1075; pow <= -1020; pow++) {
+        for (var pow = -1076; pow <= -1024; pow++) {
             for (var i=0; i<1000; i++) {
                 var val = Math.pow(2, pow + ((Math.random() + 1) * 4) - 5);
                 checkValue(t, val, 'DoubleBE');
             }
         }
-        t.done();
-    },
-
-    'float speed 1m': function(t) {
-        tmpbuf.writeFloatBE(1.5, 0);
-        var x;
-
-        console.time('readFloatBE');
-        for (var i=0; i<1000000; i++) x = fp.readFloatBE(tmpbuf);
-        console.timeEnd('readFloatBE');
-
-        console.time('writeFloatBE');
-        for (var i=0; i<1000000; i++) fp.writeFloatBE(tmpbuf, 1.5);
-        console.timeEnd('writeFloatBE');
-
-        console.time('writeFloatLE');
-        for (var i=0; i<1000000; i++) fp.writeFloatLE(tmpbuf, 1.5);
-        console.timeEnd('writeFloatLE');
-
-        console.time('readDoubleBE');
-        for (var i=0; i<1000000; i++) x = fp.readDoubleBE(tmpbuf);
-        console.timeEnd('readDoubleBE');
-
-        console.time('writeDoubleBE');
-        for (var i=0; i<1000000; i++) fp.writeDoubleBE(tmpbuf);
-        console.timeEnd('writeDoubleBE');
-
-        console.time('Buffer.readFloatBE');
-        for (var i=0; i<1000000; i++) x = tmpbuf.readFloatBE(0);
-        console.timeEnd('Buffer.readFloatBE');
-
-        console.time('Buffer.writeFloatBE');
-        for (var i=0; i<1000000; i++) tmpbuf.writeFloatBE(1.5, 0);
-        console.timeEnd('Buffer.writeFloatBE');
-
-        console.time('Buffer.readDoubleBE');
-        for (var i=0; i<1000000; i++) x = tmpbuf.readDoubleBE(0);
-        console.timeEnd('Buffer.readDoubleBE');
-
-        console.time('Buffer.writeDoubleBE');
-        for (var i=0; i<1000000; i++) tmpbuf.writeDoubleBE(1.5, 0);
-        console.timeEnd('Buffer.writeDoubleBE');
-
         t.done();
     },
 
@@ -239,17 +200,13 @@ module.exports = {
             t.equal(fp.readFloatBE(buf).toString(16), Math.pow(2, -126).toString(16));
             t.done();
         },
-
-        // TEST underflow, overflow, rounding, rounding that re-normalizes, rounding that overflows
-
     },
 
-    'exhaustive test float': function(t) {
-        // 2017-12-24:  X exhaustive test float (4559260.818ms)
-        // Error: the test or one of its setUp/tearDowns did not call done() within 2000 ms
-        t.skip();
+    'comprehensive test float': function(t) {
+        // 2017-12-24:  all 2^32 bit patterns:  X exhaustive test float (4559260.818ms)
 
-        var a, b, c, d;
+        var a, b, c, d, ci, di;
+        var midDigits = [ 0, 1, 2, 127, 128, 129, 254, 255 ];
         var valbuf = new Buffer([0,0,0,0,0,0,0,0]);
 
         // clear temps used by checkValue doubles
@@ -258,21 +215,75 @@ module.exports = {
             fpbuf[i] = 0;
         }
 
-        for (a=0; a<256; a++) {
-            valbuf[0] = a;
-console.log(a);
-            for (b=0; b<256; b++) {
-                valbuf[1] = b;
-console.log(a, b);
-                for (c=0; c<256; c++) {
-                    valbuf[2] = c;
-                    for (d=0; d<256; d++) {
-                        valbuf[3] = d;
-                        checkValue(t, valbuf, 'FloatLE');
-                        checkValue(t, valbuf, 'FloatBE');
-                    }
-                }
-            }
+        // test read/write of all floating-point values [ 0x12, 0x34, 0x56, 0x78 ]
+        // float32: 1 sign + 8 exponent + (1 implied mantissa 1 bit) + 23 stored mantissa bits
+        // As an optimization, omit testing most of the redundant middle digit possibilities,
+        // focus on zero and carry-out.
+        for (a=0; a<128; a++) {
+        for (b=0; b<256; b+=64) {
+        for (ci=0; ci<midDigits.length; ci++) {
+            c = midDigits[ci];
+        for (di=0; di<midDigits.length; di++) {
+            d = midDigits[di];
+
+            valbuf[0] = a; valbuf[1] = b; valbuf[2] = c; valbuf[3] = d;
+            checkValue(t, valbuf, 'FloatBE');
+
+            valbuf[0] = d; valbuf[1] = c; valbuf[2] = b; valbuf[3] = a;
+            checkValue(t, valbuf, 'FloatLE');
+        }}}
         }
+
+        t.done();
+    },
+
+    'comprehensive test double': function(t) {
+        var a, b, c, d, e, f, g, h, ai, bi, ci, di, ei, fi, gi, hi;
+        // mantissa digits to test with
+        // faster with fewer digits; per a:  6=17 sec, 5=5.47 sec, 4=2.12, 3=0.27, 2=0.03
+        var highDigits = [ 0, 1, 2, 127, 128, 129, 254, 255 ];
+        var midDigits = [ 0, 1, 128, 254, 255 ];
+        var midDigits = [ 0, 255 ];
+        // exponent least significant digits to test with
+        var exponentDigits = [ 0, 1, 2, 3, 4, 7, 15, 63, 127, 128, 252, 253, 254, 255 ];
+        var valbuf = new Buffer([0,0,0,0,0,0,0,0]);
+
+        // clear temps used by checkValue doubles
+        for (var i=0; i<10; i++) {
+            tmpbuf[i] = 0;
+            fpbuf[i] = 0;
+        }
+
+        // double64: 1 bit sign + 11 bits exponent + (1 implied mantissa 1 bit) + 52 stored mantissa bits
+        // float is 1 sign + 8 exponent + (1 implied mantissa 1 bit) + 23 stored mantissa bits
+        // As an optimization, omit testing most of the redundant middle digit possibilities,
+        // focus on zero and carry-out.
+        for (a=0; a<128; a++) {                         // sign and exponent high bits
+        for (bi=0; bi<exponentDigits.length; bi++) {    // exponent low bits
+            b = exponentDigits[bi];
+        for (ci=0; ci<highDigits.length; ci++) {        // mantissa high bits
+            c = highDigits[ci];
+        for (di=0; di<midDigits.length; di++) {         // mantissa bits
+            d = midDigits[di];
+        for (ei=0; ei<midDigits.length; ei++) {
+            e = midDigits[ei];
+        for (fi=0; fi<midDigits.length; fi++) {
+            f = midDigits[fi];
+        for (gi=0; gi<midDigits.length; gi++) {
+            g = midDigits[gi];
+        for (hi=0; hi<midDigits.length; hi++) {         // mantissa lsb bits
+            h = midDigits[hi];
+
+            valbuf[0] = a; valbuf[1] = b; valbuf[2] = c; valbuf[3] = d;
+            valbuf[4] = e; valbuf[5] = f; valbuf[6] = g; valbuf[7] = h;
+            checkValue(t, valbuf, 'DoubleBE');
+
+            valbuf[0] = h; valbuf[1] = g; valbuf[2] = f; valbuf[3] = e;
+            valbuf[4] = d; valbuf[5] = c; valbuf[6] = b; valbuf[7] = a;
+            checkValue(t, valbuf, 'DoubleLE');
+        }}}}}}}
+        }
+
+        t.done();
     },
 }

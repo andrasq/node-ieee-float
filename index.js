@@ -178,10 +178,11 @@ function normalize( v ) {
 // Returns a shift count that grows (a) to at least (b/2) but less than (b).
 // Doubling 1 toward v ensures that (v >> n) >= 1 < 2,
 // and doubling from v toward 2 ensures that (v << n) >= 1 < 2.
+var _2e192 = Math.pow(2, 192);
 function countDoublings( a, b ) {
     var n = 0;
 
-    while (a * 0x1000000000000000000000000000000000000000000000000 < b) { a *= 0x1000000000000000000000000000000000000000000000000; n += 192 }
+    while (a * _2e192 < b) { a *= _2e192; n += 192 }
     while (a * 0x10000000000000000 < b) { a *= 0x10000000000000000; n += 64 }
     while (a * 0x10000 < b) { a *= 0x10000; n += 16 }
     while (a * 0x40 < b) { a *= 0x40; n += 6 }

@@ -18,7 +18,7 @@
     "qtimeit": "0.21.0"
   },
   "scripts": {
-    "test": "qnit test*",
+    "test": "qnit -t 30000 test*",
     "benchmark": "node benchmark.js",
     "coverage": "nyc --reporter lcov --reporter text npm test",
     "clean": "rm -rf .nyc_output coverage npm-debug.log"
