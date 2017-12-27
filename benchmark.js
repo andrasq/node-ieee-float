@@ -26,14 +26,42 @@ var getArr = function(){ return (ix++ & 1) ? arr2 : arr1 };
 var getValue = function(){ return (ix++ & 1) ? 3.5 : 7.5 };
 var getBigValue = function(){ return ix++ & 1 ? 1e20 : 2e20 };
 
+// test with uniformly distributed numbers
+var di, dataset = new Array(), bufset = new Array(), bigbufset = new Array();
+for (var i=-200; i<200; i++) {
+    var val = Math.pow(10, i);
+    dataset.push(val);
+    var buf = new Buffer(8); buf.writeFloatBE(val, 0);
+    bufset.push(buf);
+    var buf = new Buffer(8); buf.writeDoubleBE(val, 0);
+    bigbufset.push(buf);
+}
+function getValue(){ return di < dataset.length ? dataset[di++] : dataset[di = 0] }
+function getBuf(){ return di < bufset.length ? bufset[di++] : bufset[di = 0] }
+function getBigBuf(){ return di < bigbufset.length ? bigbufset[di++] : bigbufset[di = 0] }
+
 var x;
 var tmpbuf = new Buffer(10);
-qtimeit.bench.timeGoal = .05;
+qtimeit.bench.timeGoal = .2;
 qtimeit.bench.showRunDetails = false;
 qtimeit.bench.showTestInfo = true;
 qtimeit.bench.visualize = true;
 // use callbacks to avoid memory management overhead
 var tests = {
+
+    'nodejs read float': function(cb) { x = getBuf().readFloatBE(0); cb(); },
+    'ieee-float read float': function(cb) { x = fp.readFloatBE(getBuf(), 0); cb(); },
+
+    'nodejs write float': function(cb) { tmpbuf.writeFloatBE(getValue(), 0); cb(); },
+    'ieee-float write float': function(cb) { fp.writeFloatBE(tmpbuf, getValue(), 0); cb(); },
+
+    'nodejs read double': function(cb) { x = getBigBuf().readDoubleBE(0); cb(); },
+    'ieee-float read double': function(cb) { x = fp.readDoubleBE(getBigBuf()); cb(); },
+
+    'nodejs write double': function(cb) { tmpbuf.writeDoubleBE(getValue(), 0); cb(); },
+    'ieee-float write double': function(cb) { fp.writeDoubleBE(tmpbuf, getValue()); cb(); },
+
+/**
     'nodejs': function(cb) {
         x = getBuff().readFloatBE(2);
         cb();
@@ -113,14 +141,15 @@ var tests = {
         x = fp.writeDoubleBE(getBigBuff(), 1e-20, 2);
         cb();
     },
+/**/
 };
-if (qunpack) {
+if (0 && qunpack) {
     tests['qunpack'] = function(cb) {
         x = qunpack.unpack('xxf', getBuff());
         cb();
     };
 }
-if (ieee754) {
+if (0 && ieee754) {
     tests['ieee754'] = function(cb) {
         x = ieee754.readIEEE754(getBuff(), 2, 'big', 23, 4);
         cb();
