@@ -6,7 +6,7 @@
  */
 
 ;(function install() {
-    var exports = this.exports || typeof global !== 'undefined' && global.exports || this;
+    var exports = typeof module === 'object' && module.exports || this;
 
     exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
     exports.writeFloatLE = function writeFloatLE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'le'); };

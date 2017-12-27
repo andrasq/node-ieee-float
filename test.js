@@ -85,6 +85,16 @@ function compareBytes( a, b ) {
 
 module.exports = {
 
+    'should export expected functions': function(t) {
+        var fp = require('./');
+        var funcs = ['readFloatLE', 'readFloatBE', 'readDoubleLE', 'readDoubleBE',
+                     'writeFloatLE', 'writeFloatBE', 'writeDoubleLE', 'writeDoubleBE'];
+        for (var i=0; i<funcs.length; i++) {
+            t.equal(typeof fp[funcs[i]], 'function');
+        }
+        t.done();
+    },
+
     'read and write float': function(t) {
         var tests = testValues;
 
