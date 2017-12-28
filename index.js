@@ -5,28 +5,90 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-;(function install() {
-    var exports = typeof module === 'object' && module.exports || this;
+'use strict';
 
-    exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
-    exports.writeFloatLE = function writeFloatLE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'le'); };
-    exports.readFloatBE = function readFloatBE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'bige'); }
-    exports.writeFloatBE = function writeFloatBE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'bige'); }
+var isBigeCpu = false;
+var readFloat32Array, writeFloat32Array, readFloat32ArrayRev, writeFloat32ArrayRev;
+var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayRev;
 
-    exports.readDoubleLE = function readDoubleLE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'le'); }
-    exports.writeDoubleLE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'le'); }
-    exports.readDoubleBE = function readDoubleBE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'bige'); }
-    exports.writeDoubleBE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'bige'); }
 
-    exports.readFloat = readFloat;
-    exports.writeFloat = writeFloat;
-    exports.readDouble = readDouble;
-    exports.writeDouble = writeDouble;
+// test FloatArray existence with && to not throw off code coverage
+(typeof Float32Array === 'function') && (function(){
+    var _fp32 = new Float32Array(1);
+    var _b32 = new Uint8Array(_fp32.buffer);
 
-    // accelerate access
-    install.prototype = exports;
+    _fp32[0] = -1;
+    isBigeCpu = _b32[3] === 0;
 
-}).call(this);
+    readFloat32Array = function readFloat32Array( buf, pos ) {
+        pos = pos || 0;
+        if (pos < 0 || pos + 4 > buf.length) return 0;
+        _b32[0] = buf[pos++]; _b32[1] = buf[pos++]; _b32[2] = buf[pos++];_b32[3] = buf[pos];
+        return _fp32[0];
+    }
+
+    readFloat32ArrayRev = function readFloat32ArrayRev( buf, pos ) {
+        pos = pos || 0;
+        if (pos < 0 || pos + 4 > buf.length) return 0;
+        _b32[3] = buf[pos++]; _b32[2] = buf[pos++]; _b32[1] = buf[pos++]; _b32[0] = buf[pos];
+        return _fp32[0];
+    }
+
+    writeFloat32Array = function writeFloat32Array( buf, v, pos ) {
+        pos = pos || 0;
+        _fp32[0] = v;
+        buf[pos++] = _b32[0]; buf[pos++] = _b32[1]; buf[pos++] = _b32[2]; buf[pos] = _b32[3];
+    }
+
+    writeFloat32ArrayRev = function writeFloat32ArrayRev( buf, v, pos ) {
+        pos = pos || 0;
+        _fp32[0] = v;
+        buf[pos++] = _b32[3]; buf[pos++] = _b32[2]; buf[pos++] = _b32[1]; buf[pos] = _b32[0];
+    }
+})();
+
+(typeof Float64Array === 'function') && (function(){
+    var _fp64 = new Float64Array(1);
+    var _b64 = new Uint8Array(_fp64.buffer);
+
+    readFloat64Array = function readFloat64Array( buf, pos ) {
+        pos = pos || 0;
+        if (pos < 0 || pos + 8 > buf.length) return 0;
+//        _b64[0] = buf[pos++]; _b64[1] = buf[pos++]; _b64[2] = buf[pos++]; _b64[3] = buf[pos++];
+//        _b64[4] = buf[pos++]; _b64[5] = buf[pos++]; _b64[6] = buf[pos++]; _b64[7] = buf[pos];
+        _b64[0] = buf[pos+0]; _b64[1] = buf[pos+1]; _b64[2] = buf[pos+2]; _b64[3] = buf[pos+3];
+        _b64[4] = buf[pos+4]; _b64[5] = buf[pos+5]; _b64[6] = buf[pos+6]; _b64[7] = buf[pos+7];
+        return _fp64[0];
+    }
+
+    readFloat64ArrayRev = function readFloat64ArrayRev( buf, pos ) {
+        pos = pos || 0;
+        if (pos < 0 || pos + 8 > buf.length) return 0;
+//        _b64[7] = buf[pos++]; _b64[6] = buf[pos++]; _b64[5] = buf[pos++]; _b64[4] = buf[pos++];
+//        _b64[3] = buf[pos++]; _b64[2] = buf[pos++]; _b64[1] = buf[pos++]; _b64[0] = buf[pos];
+        _b64[7] = buf[pos+0]; _b64[6] = buf[pos+1]; _b64[5] = buf[pos+2]; _b64[4] = buf[pos+3];
+        _b64[3] = buf[pos+4]; _b64[2] = buf[pos+5]; _b64[1] = buf[pos+6]; _b64[0] = buf[pos+7];
+        return _fp64[0];
+    }
+
+    writeFloat64Array = function writeFloat64Array( buf, v, pos ) {
+        pos = pos || 0;
+        _fp64[0] = v;
+//        buf[pos++] = _b64[0]; buf[pos++] = _b64[1]; buf[pos++] = _b64[2]; buf[pos++] = _b64[3];
+//        buf[pos++] = _b64[4]; buf[pos++] = _b64[5]; buf[pos++] = _b64[6]; buf[pos++] = _b64[7];
+        buf[pos + 0] = _b64[0]; buf[pos + 1] = _b64[1]; buf[pos + 2] = _b64[2]; buf[pos + 3] = _b64[3];
+        buf[pos + 4] = _b64[4]; buf[pos + 5] = _b64[5]; buf[pos + 6] = _b64[6]; buf[pos + 7] = _b64[7];
+    }
+
+    writeFloat64ArrayRev = function writeFloat64ArrayRev( buf, v, pos ) {
+        pos = pos || 0;
+        _fp64[0] = v;
+//        buf[pos++] = _b64[7]; buf[pos++] = _b64[6]; buf[pos++] = _b64[5]; buf[pos++] = _b64[4];
+//        buf[pos++] = _b64[3]; buf[pos++] = _b64[2]; buf[pos++] = _b64[2]; buf[pos++] = _b64[0];
+        buf[pos + 0] = _b64[7]; buf[pos + 1] = _b64[6]; buf[pos + 2] = _b64[5]; buf[pos + 3] = _b64[4];
+        buf[pos + 4] = _b64[3]; buf[pos + 5] = _b64[2]; buf[pos + 6] = _b64[1]; buf[pos + 7] = _b64[0];
+    }
+})();
 
 
 // arithmetic operations preserve NaN, but logical ops (, >>, etc) convert them to zero
@@ -71,7 +133,7 @@ function pow2( exp ) {
 
 // getFloat() from qbson, https://github.com/andrasq/node-qbson:
 /*
- * extract the 64-bit little-endian ieee 754 floating-point value 
+ * extract the 64-bit little-endian ieee 754 floating-point value
  *   see http://en.wikipedia.org/wiki/Double-precision_floating-point_format
  *   1 bit sign + 11 bits exponent + (1 implicit mantissa 1 bit) + 52 mantissa bits
  */
@@ -293,3 +355,50 @@ function writeDouble( buf, v, offset, dirn ) {
         writeDoubleWord(buf, highWord, lowWord, offset, dirn);
     }
 }
+
+
+;(function install() {
+    var exports = typeof module === 'object' && module.exports || this;
+
+    exports.readFloat = readFloat;
+    exports.writeFloat = writeFloat;
+    exports.readDouble = readDouble;
+    exports.writeDouble = writeDouble;
+
+    // expose the implementation to the tests
+    exports._useFloatArray = function( yesno ) {
+        if (yesno) {
+            exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
+            exports.writeFloatLE = isBigeCpu ? writeFloat32ArrayRev : writeFloat32Array;
+            exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
+            exports.writeFloatBE = isBigeCpu ? writeFloat32Array : writeFloat32ArrayRev;
+
+            exports.readDoubleLE = isBigeCpu ? readFloat64ArrayRev : readFloat64Array;
+            exports.writeDoubleLE = isBigeCpu ? writeFloat64ArrayRev : writeFloat64Array;
+            exports.readDoubleBE = isBigeCpu ? readFloat64Array : readFloat64ArrayRev;
+            exports.writeDoubleBE = isBigeCpu ? writeFloat64Array : writeFloat64ArrayRev;
+        }
+        else {
+            exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
+            exports.writeFloatLE = function writeFloatLE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'le'); };
+            exports.readFloatBE = function readFloatBE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'bige'); }
+            exports.writeFloatBE = function writeFloatBE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'bige'); }
+
+            exports.readDoubleLE = function readDoubleLE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'le'); }
+            exports.writeDoubleLE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'le'); }
+            exports.readDoubleBE = function readDoubleBE( buf, offset ) { return exports.readDouble(buf, offset || 0, 'bige'); }
+            exports.writeDoubleBE = function writeDoubleLE( buf, v, offset ) { exports.writeDouble(buf, v, offset || 0, 'bige'); }
+        }
+    }
+
+    // expose the cpu endianism to the tests
+    exports._getBigeCpu = function() { return isBigeCpu };
+    exports._setBigeCpu = function(yesno) { isBigeCpu = yesno };
+
+    // if available, convert by casting a FloatArray to a byte array
+    exports._useFloatArray(readFloat32Array && readFloat64Array);
+
+    // accelerate access
+    install.prototype = exports;
+
+}).call(this);
