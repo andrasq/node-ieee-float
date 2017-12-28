@@ -74,8 +74,6 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
     writeFloat64Array = function writeFloat64Array( buf, v, pos ) {
         pos = pos || 0;
         _fp64[0] = v;
-//        buf[pos++] = _b64[0]; buf[pos++] = _b64[1]; buf[pos++] = _b64[2]; buf[pos++] = _b64[3];
-//        buf[pos++] = _b64[4]; buf[pos++] = _b64[5]; buf[pos++] = _b64[6]; buf[pos++] = _b64[7];
         buf[pos + 0] = _b64[0]; buf[pos + 1] = _b64[1]; buf[pos + 2] = _b64[2]; buf[pos + 3] = _b64[3];
         buf[pos + 4] = _b64[4]; buf[pos + 5] = _b64[5]; buf[pos + 6] = _b64[6]; buf[pos + 7] = _b64[7];
     }
@@ -83,8 +81,6 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
     writeFloat64ArrayRev = function writeFloat64ArrayRev( buf, v, pos ) {
         pos = pos || 0;
         _fp64[0] = v;
-//        buf[pos++] = _b64[7]; buf[pos++] = _b64[6]; buf[pos++] = _b64[5]; buf[pos++] = _b64[4];
-//        buf[pos++] = _b64[3]; buf[pos++] = _b64[2]; buf[pos++] = _b64[2]; buf[pos++] = _b64[0];
         buf[pos + 0] = _b64[7]; buf[pos + 1] = _b64[6]; buf[pos + 2] = _b64[5]; buf[pos + 3] = _b64[4];
         buf[pos + 4] = _b64[3]; buf[pos + 5] = _b64[2]; buf[pos + 6] = _b64[1]; buf[pos + 7] = _b64[0];
     }

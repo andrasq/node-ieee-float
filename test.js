@@ -158,15 +158,23 @@ module.exports = {
             // if the code believes the cpu is big-endian, all BE values will be
             // in storage native (little-e) order, and LE values will be flipped.
             if (isBigeCpu) {
-                t.deepEqual((fp.writeFloatLE(data, -0), data), [0, 0, 0, 128]);
-                t.deepEqual((fp.writeFloatBE(data, -0), data), [128, 0, 0, 0]);
-                t.deepEqual((fp.writeDoubleLE(data, -0), data), [0, 0, 0, 0, 0, 0, 0, 128]);
-                t.deepEqual((fp.writeDoubleBE(data, -0), data), [128, 0, 0, 0, 0, 0, 0, 0]);
+                t.deepEqual((fp.writeFloatLE(data, -1), data), [0, 0, 128, 191]);
+                t.deepEqual((fp.readFloatLE(data)), -1);
+                t.deepEqual((fp.writeFloatBE(data, -1), data), [191, 128, 0, 0]);
+                t.deepEqual((fp.readFloatBE(data)), -1);
+                t.deepEqual((fp.writeDoubleLE(data8, -1), data8), [0, 0, 0, 0, 0, 0, 240, 191]);
+                t.deepEqual((fp.readDoubleLE(data8)), -1);
+                t.deepEqual((fp.writeDoubleBE(data8, -1), data8), [191, 240, 0, 0, 0, 0, 0, 0]);
+                t.deepEqual((fp.readDoubleBE(data8)), -1);
             } else {
-                t.deepEqual((fp.writeFloatLE(data, -0), data), [0, 0, 0, 128].reverse());
-                t.deepEqual((fp.writeFloatBE(data, -0), data), [128, 0, 0, 0].reverse());
-                t.deepEqual((fp.writeDoubleLE(data, -0), data), [0, 0, 0, 0, 0, 0, 0, 128].reverse());
-                t.deepEqual((fp.writeDoubleBE(data, -0), data), [128, 0, 0, 0, 0, 0, 0, 0].reverse());
+                t.deepEqual((fp.writeFloatLE(data, -1), data), [0, 0, 128, 191].reverse());
+                t.deepEqual((fp.readFloatLE(data)), -1);
+                t.deepEqual((fp.writeFloatBE(data, -1), data), [191, 128, 0, 0].reverse());
+                t.deepEqual((fp.readFloatBE(data)), -1);
+                t.deepEqual((fp.writeDoubleLE(data8, -1), data8), [0, 0, 0, 0, 0, 0, 240, 191].reverse());
+                t.deepEqual((fp.readDoubleLE(data8)), -1);
+                t.deepEqual((fp.writeDoubleBE(data8, -1), data8), [191, 240, 0, 0, 0, 0, 0, 0].reverse());
+                t.deepEqual((fp.readDoubleBE(data8)), -1);
             }
 
             t.done();
