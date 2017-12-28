@@ -1,4 +1,4 @@
-// to run:  npm install qtimeit qunpack ; npm run benchmark
+// to run:  npm install qtimeit qunpack ieee754 @protobufjs/float ; npm run benchmark
 
 'use strict';
 
@@ -6,7 +6,9 @@ var qtimeit = require('qtimeit');
 
 var fp = require('./');
 try { var qunpack = require('qunpack') } catch (e) { }
-try { var ieee754 = require('./buffer_ieee754.js') } catch (e) { }
+try { var ieee754 = require('ieee754') } catch (e) { }
+try { var jsfloat = require('@protobufjs/float') } catch (e) { }
+
 
 var ix = 0;
 var buf1 = new Buffer(10), buf2 = new Buffer(10);
@@ -61,7 +63,7 @@ var tests = {
     'nodejs write double': function(cb) { tmpbuf.writeDoubleBE(getValue(), 0); cb(); },
     'ieee-float write double': function(cb) { fp.writeDoubleBE(tmpbuf, getValue()); cb(); },
 
-/**
+///**
     'nodejs': function(cb) {
         x = getBuff().readFloatBE(2);
         cb();
@@ -146,6 +148,57 @@ var tests = {
 if (0 && qunpack) {
     tests['qunpack'] = function(cb) {
         x = qunpack.unpack('xxf', getBuff());
+        cb();
+    };
+}
+if (1 && jsfloat) {
+    tests['jsfloat'] = function(cb) {
+        x = jsfloat.readFloatBE(getBuff(), 2);
+        cb();
+    };
+
+    tests['jsfloat write'] = function(cb) {
+        x = jsfloat.writeFloatBE(getValue(), tmpbuf, 2);
+        cb();
+    };
+
+    tests['jsfloat double'] = function(cb) {
+        x = jsfloat.readDoubleBE(getBigBuff(), 2);
+        cb();
+    };
+
+    tests['jsfloat double write'] = function(cb) {
+        x = jsfloat.writeDoubleBE(getValue(), tmpbuf, 2);
+        cb();
+    };
+
+    tests['jsfloat write big'] = function(cb) {
+        x = jsfloat.writeDoubleBE(1e20, tmpbuf, 2);
+        cb();
+    };
+
+    tests['jsfloat 2'] = function(cb) {
+        x = jsfloat.readFloatBE(getBuff(), 2);
+        cb();
+    };
+
+    tests['jsfloat write 2'] = function(cb) {
+        x = jsfloat.writeFloatBE(getValue(), tmpbuf, 2);
+        cb();
+    };
+
+    tests['jsfloat double 2'] = function(cb) {
+        x = jsfloat.readDoubleBE(getBigBuff(), 2);
+        cb();
+    };
+
+    tests['jsfloat double write 2'] = function(cb) {
+        x = jsfloat.writeDoubleBE(getValue(), tmpbuf, 2);
+        cb();
+    };
+
+    tests['jsfloat write big 2'] = function(cb) {
+        x = jsfloat.writeDoubleBE(1e20, tmpbuf, 2);
         cb();
     };
 }
