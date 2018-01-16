@@ -151,7 +151,7 @@ if (0 && qunpack) {
         cb();
     };
 }
-if (1 && jsfloat) {
+if (0 && jsfloat) {
     tests['jsfloat'] = function(cb) {
         x = jsfloat.readFloatBE(getBuff(), 2);
         cb();
@@ -204,27 +204,27 @@ if (1 && jsfloat) {
 }
 if (0 && ieee754) {
     tests['ieee754'] = function(cb) {
-        x = ieee754.readIEEE754(getBuff(), 2, 'big', 23, 4);
+        x = ieee754.read(getBuff(), 2, 'big', 23, 4);
         cb();
     };
 
     tests['ieee754 write'] = function(cb) {
-        x = ieee754.writeIEEE754(tmpbuf, getValue(), 2, 'big', 23, 4);
+        x = ieee754.write(tmpbuf, getValue(), 2, 'big', 23, 4);
         cb();
     };
 
     tests['ieee754 double'] = function(cb) {
-        x = ieee754.readIEEE754(getBigBuff(), 2, 'big', 52, 8);
+        x = ieee754.read(getBigBuff(), 2, 'big', 52, 8);
         cb();
     };
 
     tests['ieee754 double write'] = function(cb) {
-        x = ieee754.writeIEEE754(tmpbuf, getValue(), 2, 'big', 52, 8);
+        x = ieee754.write(tmpbuf, getValue(), 2, 'big', 52, 8);
         cb();
     };
 
     tests['ieee754 write big'] = function(cb) {
-        x = ieee754.writeIEEE754(tmpbuf, 1e20, 2, 'big', 23, 4);
+        x = ieee754.write(tmpbuf, 1e20, 2, 'big', 23, 4);
         cb();
     };
 }
