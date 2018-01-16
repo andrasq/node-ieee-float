@@ -48,6 +48,7 @@ qtimeit.bench.timeGoal = .2;
 qtimeit.bench.showRunDetails = false;
 qtimeit.bench.showTestInfo = true;
 qtimeit.bench.visualize = true;
+qtimeit.bench.baselineAvg = 40000000;
 // use callbacks to avoid memory management overhead
 var tests = {
 

@@ -391,7 +391,9 @@ function writeDouble( buf, v, offset, dirn ) {
     exports._getBigeCpu = function() { return isBigeCpu };
     exports._setBigeCpu = function(yesno) { isBigeCpu = yesno };
 
+    // by default export the software conversion functions, then
     // if available, convert by casting a FloatArray to a byte array
+    exports._useFloatArray(false);
     exports._useFloatArray(readFloat32Array && readFloat64Array);
 
     // accelerate access
