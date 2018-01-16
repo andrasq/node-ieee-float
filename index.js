@@ -24,6 +24,7 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
         pos = pos || 0;
         if (pos < 0 || pos + 4 > buf.length) return 0;
         _b32[0] = buf[pos++]; _b32[1] = buf[pos++]; _b32[2] = buf[pos++];_b32[3] = buf[pos];
+        //_b32[0] = buf[pos+0]; _b32[1] = buf[pos+1]; _b32[2] = buf[pos+2]; _b32[3] = buf[pos+3];
         return _fp32[0];
     }
 
@@ -31,6 +32,7 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
         pos = pos || 0;
         if (pos < 0 || pos + 4 > buf.length) return 0;
         _b32[3] = buf[pos++]; _b32[2] = buf[pos++]; _b32[1] = buf[pos++]; _b32[0] = buf[pos];
+        //_b32[3] = buf[pos+0]; _b32[2] = buf[pos+1]; _b32[1] = buf[pos+2]; _b32[0] = buf[pos+3];
         return _fp32[0];
     }
 
@@ -38,12 +40,14 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
         pos = pos || 0;
         _fp32[0] = v;
         buf[pos++] = _b32[0]; buf[pos++] = _b32[1]; buf[pos++] = _b32[2]; buf[pos] = _b32[3];
+        //buf[pos+0] = _b32[0]; buf[pos+1] = _b32[1]; buf[pos+2] = _b32[2]; buf[pos+3] = _b32[3];
     }
 
     writeFloat32ArrayRev = function writeFloat32ArrayRev( buf, v, pos ) {
         pos = pos || 0;
         _fp32[0] = v;
         buf[pos++] = _b32[3]; buf[pos++] = _b32[2]; buf[pos++] = _b32[1]; buf[pos] = _b32[0];
+        //buf[pos+0] = _b32[3]; buf[pos+1] = _b32[2]; buf[pos+2] = _b32[1]; buf[pos+3] = _b32[0];
     }
 })();
 
@@ -54,8 +58,8 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
     readFloat64Array = function readFloat64Array( buf, pos ) {
         pos = pos || 0;
         if (pos < 0 || pos + 8 > buf.length) return 0;
-//        _b64[0] = buf[pos++]; _b64[1] = buf[pos++]; _b64[2] = buf[pos++]; _b64[3] = buf[pos++];
-//        _b64[4] = buf[pos++]; _b64[5] = buf[pos++]; _b64[6] = buf[pos++]; _b64[7] = buf[pos];
+        //_b64[0] = buf[pos++]; _b64[1] = buf[pos++]; _b64[2] = buf[pos++]; _b64[3] = buf[pos++];
+        //_b64[4] = buf[pos++]; _b64[5] = buf[pos++]; _b64[6] = buf[pos++]; _b64[7] = buf[pos];
         _b64[0] = buf[pos+0]; _b64[1] = buf[pos+1]; _b64[2] = buf[pos+2]; _b64[3] = buf[pos+3];
         _b64[4] = buf[pos+4]; _b64[5] = buf[pos+5]; _b64[6] = buf[pos+6]; _b64[7] = buf[pos+7];
         return _fp64[0];
@@ -64,8 +68,8 @@ var readFloat64Array, writeFloat64Array, readFloat64ArrayRev, writeFloat64ArrayR
     readFloat64ArrayRev = function readFloat64ArrayRev( buf, pos ) {
         pos = pos || 0;
         if (pos < 0 || pos + 8 > buf.length) return 0;
-//        _b64[7] = buf[pos++]; _b64[6] = buf[pos++]; _b64[5] = buf[pos++]; _b64[4] = buf[pos++];
-//        _b64[3] = buf[pos++]; _b64[2] = buf[pos++]; _b64[1] = buf[pos++]; _b64[0] = buf[pos];
+        //_b64[7] = buf[pos++]; _b64[6] = buf[pos++]; _b64[5] = buf[pos++]; _b64[4] = buf[pos++];
+        //_b64[3] = buf[pos++]; _b64[2] = buf[pos++]; _b64[1] = buf[pos++]; _b64[0] = buf[pos];
         _b64[7] = buf[pos+0]; _b64[6] = buf[pos+1]; _b64[5] = buf[pos+2]; _b64[4] = buf[pos+3];
         _b64[3] = buf[pos+4]; _b64[2] = buf[pos+5]; _b64[1] = buf[pos+6]; _b64[0] = buf[pos+7];
         return _fp64[0];
@@ -364,9 +368,10 @@ function writeDouble( buf, v, offset, dirn ) {
     // expose the implementation to the tests
     exports._useFloatArray = function( yesno ) {
         if (yesno) {
-            exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
+// software conversion is faster for float32 than Float32Array
+//            exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
             exports.writeFloatLE = isBigeCpu ? writeFloat32ArrayRev : writeFloat32Array;
-            exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
+//            exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
             exports.writeFloatBE = isBigeCpu ? writeFloat32Array : writeFloat32ArrayRev;
 
             exports.readDoubleLE = isBigeCpu ? readFloat64ArrayRev : readFloat64Array;
