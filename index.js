@@ -367,8 +367,10 @@ function writeDouble( buf, v, offset, dirn ) {
 
     // expose the implementation to the tests
     exports._useFloatArray = function( yesno ) {
+        exports._usingFloatArray = 'full';
         if (yesno) {
 // software conversion is faster for float32 than Float32Array
+exports._usingFloatArray = 'partial';
 //            exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
             exports.writeFloatLE = isBigeCpu ? writeFloat32ArrayRev : writeFloat32Array;
 //            exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
@@ -380,6 +382,7 @@ function writeDouble( buf, v, offset, dirn ) {
             exports.writeDoubleBE = isBigeCpu ? writeFloat64Array : writeFloat64ArrayRev;
         }
         else {
+            exports._usingFloatArray = '';
             exports.readFloatLE = function readFloatLE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'le'); }
             exports.writeFloatLE = function writeFloatLE( buf, v, offset ) { exports.writeFloat(buf, v, offset || 0, 'le'); };
             exports.readFloatBE = function readFloatBE( buf, offset ) { return exports.readFloat(buf, offset || 0, 'bige'); }

@@ -152,6 +152,8 @@ module.exports = {
         },
 
         'should read and write values': function(t) {
+            if (fp._usingFloatArray !== 'full') t.skip();
+
             var data = [0,0,0,0];
             var data8 = [0,0,0,0,0,0,0,0];
 
