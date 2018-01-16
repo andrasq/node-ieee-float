@@ -367,13 +367,13 @@ function writeDouble( buf, v, offset, dirn ) {
 
     // expose the implementation to the tests
     exports._useFloatArray = function( yesno ) {
-        exports._usingFloatArray = 'full';
+        exports._usingFloatArray = yesno;
         if (yesno) {
-// software conversion is faster for float32 than Float32Array
-exports._usingFloatArray = 'partial';
-//            exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
+            // software conversion is faster for float32 than Float32Array
+            // Only read via Float32Array if yesno == 'full'.
+            if (yesno == 'full') exports.readFloatLE = isBigeCpu ? readFloat32ArrayRev : readFloat32Array;
             exports.writeFloatLE = isBigeCpu ? writeFloat32ArrayRev : writeFloat32Array;
-//            exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
+            if (yesno == 'full') exports.readFloatBE = isBigeCpu ? readFloat32Array : readFloat32ArrayRev;
             exports.writeFloatBE = isBigeCpu ? writeFloat32Array : writeFloat32ArrayRev;
 
             exports.readDoubleLE = isBigeCpu ? readFloat64ArrayRev : readFloat64Array;
@@ -402,7 +402,7 @@ exports._usingFloatArray = 'partial';
     // by default export the software conversion functions, then
     // if available, convert by casting a FloatArray to a byte array
     exports._useFloatArray(false);
-    exports._useFloatArray(readFloat32Array && readFloat64Array);
+    exports._useFloatArray(readFloat32Array && readFloat64Array && 'fastest');
 
     // accelerate access
     install.prototype = exports;

@@ -114,7 +114,7 @@ module.exports = {
     'floatArray little-e': {
         'before': function(done) {
             fp._setBigeCpu(false);
-            fp._useFloatArray(true);
+            fp._useFloatArray('full');
             done();
         },
 
@@ -147,13 +147,11 @@ module.exports = {
     'floatArray big-e': {
         'before': function(done) {
             fp._setBigeCpu(true);
-            fp._useFloatArray(true);
+            fp._useFloatArray('full');
             done();
         },
 
         'should read and write values': function(t) {
-            if (fp._usingFloatArray !== 'full') t.skip();
-
             var data = [0,0,0,0];
             var data8 = [0,0,0,0,0,0,0,0];
 
