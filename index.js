@@ -360,6 +360,10 @@ function writeDouble( buf, v, offset, dirn ) {
 ;(function install() {
     var exports = typeof module === 'object' && module.exports || this;
 
+    exports.readWord = readWord;
+    exports.writeWord = writeWord;
+    exports.writeDoubleWord = writeDoubleWord;
+
     exports.readFloat = readFloat;
     exports.writeFloat = writeFloat;
     exports.readDouble = readDouble;

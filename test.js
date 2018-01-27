@@ -103,12 +103,48 @@ module.exports = {
 
     'should export expected functions': function(t) {
         var fp = require('./');
-        var funcs = ['readFloatLE', 'readFloatBE', 'readDoubleLE', 'readDoubleBE',
+        var funcs = ['readWord', 'writeWord', 'writeDoubleWord',
+                     'readFloatLE', 'readFloatBE', 'readDoubleLE', 'readDoubleBE',
                      'writeFloatLE', 'writeFloatBE', 'writeDoubleLE', 'writeDoubleBE'];
         for (var i=0; i<funcs.length; i++) {
             t.equal(typeof fp[funcs[i]], 'function');
         }
         t.done();
+    },
+
+    'word': {
+        'should read word': function(t) {
+            var buf = [ 1, 2, 3, 4, 5, 6 ];
+            t.equal(fp.readWord(buf, 0), 0x04030201);
+            t.equal(fp.readWord(buf, 1), 0x05040302);
+            t.equal(fp.readWord(buf, 2), 0x06050403);
+            t.ok(isNaN(fp.readWord(buf, 3)));
+            t.done();
+        }
+
+        'should write word': function(t) {
+            var buf = [];
+            fp.writeWord(buf, 0x12345678, 1);
+            t.deepEqual(buf, [ , 0x78, 0x56, 0x34, 0x12 ]);
+
+            var buf = [];
+            fp.writeWord(buf, 0x12345678, 2, 'bige');
+            t.deepEqual(buf, [ , , 0x12, 0x34, 0x56, 0x78 ]);
+
+            t.done();
+        },
+
+        'should write double word': function(t) {
+            var buf = [];
+            fp.writeDoubleWord(buf, 0x01020304, 0x05060708, 1);
+            t.deepEqual(buf, [ , 8, 7, 6, 5, 4, 3, 2, 1 ]);
+
+            var buf = [];
+            fp.writeDoubleWord(buf, 0x01020304, 0x05060708, 3, 'bige');
+            t.deepEqual(buf, [ , , , 1, 2, 3, 4, 5, 6, 7, 8 ]);
+
+            t.done();
+        },
     },
 
     'floatArray little-e': {
