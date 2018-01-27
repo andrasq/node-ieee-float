@@ -120,7 +120,7 @@ module.exports = {
             t.equal(fp.readWord(buf, 2), 0x06050403);
             t.ok(isNaN(fp.readWord(buf, 3)));
             t.done();
-        }
+        },
 
         'should write word': function(t) {
             var buf = [];
