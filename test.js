@@ -1,7 +1,7 @@
 /**
  * single- and double-precision floating point implementation test
  *
- * Copyright (C) 2017 Andras Radics
+ * Copyright (C) 2017-2019 Andras Radics
  * Licensed under the Apache License, Version 2.0
  */ 
 
@@ -56,6 +56,7 @@ function checkValue( t, val, type ) {
     else {
         for (var i=0; i<8; i++) tmpbuf[i] = val[i];
         var expect = tmpbuf[read](0);
+        if (!expect && expect !== 0) expect = NaN;
         fp[write](fpbuf, expect);
     }
 
