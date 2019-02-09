@@ -1,11 +1,15 @@
 language: node_js
 node_js:
   - 0.10
+  - 4
   - 6
   - 9
+  - 10
+  - 11
+before_install:
+  - npm install -g qnit
 after_success:
   - if [ `node -p 'process.version.slice(0, 3)'` != "v9." ]; then exit; fi
   - npm install -g nyc codecov coveralls
-  - npm install -g codecov
   - nyc -r text --reporter lcov npm test && codecov
   - nyc report -r text-lcov | coveralls
