@@ -87,5 +87,5 @@ Related Work
 ------------
 
 - [qbson](https://github.com/andrasq/node-qbson#readme)
-- [messagepackjs](https://npmjs.com/package/messagepackjs)
+- [msgpackjs](https://npmjs.com/package/msgpackjs)
 - [buffalo](https://npmjs.com/package/buffalo)
